@@ -5,7 +5,11 @@
   "private": true,
   "scripts": {
     "dev": "bun --watch src/index.ts",
-    "start": "bun src/index.ts"
+    "start": "node --import tsx src/index.ts",
+    "start:bun": "bun src/index.ts",
+    "db:migrate": "bunx prisma migrate deploy",
+    "db:seed": "bunx prisma db seed",
+    "postinstall": "bunx prisma generate"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -27,6 +31,7 @@
     "express": "^5.2.1",
     "prisma": "^7.5.0",
     "stripe": "^20.4.1",
+    "tsx": "^4.21.0",
     "zod": "^4.3.6"
   }
 }
