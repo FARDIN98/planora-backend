@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ========== Better Auth Tables ==========
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          String    @default("user")
+  banned        Boolean   @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions Session[]
+  accounts Account[]
+
+  // App relations
+  events              Event[]
+  registrations       Registration[]
+  reviews             Review[]
+  sentInvitations     Invitation[] @relation("InvitationSender")
+  receivedInvitations Invitation[] @relation("InvitationReceiver")
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  impersonatedBy       String?
+
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@map("account")
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime? @default(now())
+  updatedAt  DateTime? @updatedAt
+
+  @@map("verification")
+}
+
+// ========== App Domain Tables ==========
+
+enum EventVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum EventType {
+  FREE
+  PAID
+}
+
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  BANNED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+}
+
+model Event {
+  id          String          @id @default(cuid())
+  title       String
+  description String
+  date        DateTime
+  time        String
+  venue       String
+  visibility  EventVisibility @default(PUBLIC)
+  type        EventType       @default(FREE)
+  fee         Float           @default(0)
+  imageUrl    String?
+  isFeatured  Boolean         @default(false)
+  category    String          @default("General")
+
+  organizerId String
+  organizer   User   @relation(fields: [organizerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  registrations Registration[]
+  reviews       Review[]
+  invitations   Invitation[]
+
+  @@map("events")
+}
+
+model Registration {
+  id     String             @id @default(cuid())
+  status RegistrationStatus @default(PENDING)
+
+  userId  String
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId String
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  stripeSessionId String?
+  amountPaid      Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, eventId])
+  @@map("registrations")
+}
+
+model Review {
+  id      String @id @default(cuid())
+  rating  Int
+  comment String
+
+  userId  String
+  user    User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId String
+  event   Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, eventId])
+  @@map("reviews")
+}
+
+model Invitation {
+  id     String           @id @default(cuid())
+  status InvitationStatus @default(PENDING)
+
+  senderId   String
+  sender     User  @relation("InvitationSender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiverId String
+  receiver   User  @relation("InvitationReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  eventId    String
+  event      Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  stripeSessionId String?
+  amountPaid      Float?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([receiverId, eventId])
+  @@map("invitations")
+}
