@@ -40,6 +40,14 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
       name: "Events",
       description: "Event management — create, list, update, delete events",
     },
+    {
+      name: "Registrations",
+      description: "Event participation — join events, manage registrations",
+    },
+    {
+      name: "Webhooks",
+      description: "Stripe webhook endpoint for payment confirmation",
+    },
   ],
   components: {
     securitySchemes: {
@@ -135,6 +143,31 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
           page: { type: "integer", description: "Current page number" },
           limit: { type: "integer", description: "Items per page" },
           totalPages: { type: "integer", description: "Total number of pages" },
+        },
+      },
+      Registration: {
+        type: "object",
+        properties: {
+          id: { type: "string", example: "clxyz456def" },
+          status: {
+            type: "string",
+            enum: ["PENDING", "APPROVED", "REJECTED", "BANNED"],
+            example: "APPROVED",
+          },
+          userId: { type: "string" },
+          eventId: { type: "string" },
+          stripeSessionId: { type: "string", nullable: true },
+          amountPaid: { type: "number", nullable: true, example: 25.0 },
+          user: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+              email: { type: "string", format: "email" },
+            },
+          },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
         },
       },
     },

@@ -7,6 +7,8 @@ import { swaggerSpec, swaggerCssOverride } from "./config/swagger.js";
 import healthRoutes from "./routes/health.routes.js";
 import v1AuthRoutes from "./routes/v1.auth.routes.js";
 import eventRoutes from "./routes/event.routes.js";
+import registrationRoutes, { userRegistrationRouter } from "./routes/registration.routes.js";
+import { stripeWebhookHandler } from "./routes/webhook.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -42,13 +44,18 @@ app.use(
 // Better Auth parses its own request bodies; express.json() would consume the stream
 app.all("/api/auth/{*splat}", toNodeHandler(auth));
 
-// Body parsing for all OTHER routes (after auth handler)
+// Stripe webhook -- MUST come BEFORE express.json() (needs raw body for signature verification)
+app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), stripeWebhookHandler);
+
+// Body parsing for all OTHER routes (after auth handler and webhook)
 app.use(express.json());
 
 // --- API v1 Routes ---
 app.use("/api/v1/health", healthRoutes);
 app.use("/api/v1/auth", v1AuthRoutes);
 app.use("/api/v1/events", eventRoutes);
+app.use("/api/v1/events/:eventId/registrations", registrationRoutes);
+app.use("/api/v1/registrations", userRegistrationRouter);
 
 // Legacy health check (keep for backward compatibility with Render health checks)
 app.get("/api/health", (_req, res) => {
