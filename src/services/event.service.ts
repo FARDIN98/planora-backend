@@ -43,9 +43,8 @@ async function list(query: SearchInput) {
     });
   }
 
-  if (visibility) {
-    andConditions.push({ visibility });
-  }
+  // Default to PUBLIC — PRIVATE events are hidden from public listings
+  andConditions.push({ visibility: visibility || "PUBLIC" });
 
   if (type) {
     andConditions.push({ type });
@@ -82,7 +81,7 @@ async function list(query: SearchInput) {
   };
 }
 
-async function getById(eventId: string) {
+async function getById(eventId: string, userId?: string) {
   const [event, reviewStats] = await Promise.all([
     prisma.event.findUnique({
       where: { id: eventId },
@@ -99,6 +98,22 @@ async function getById(eventId: string) {
 
   if (!event) {
     throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
+  }
+
+  // PRIVATE events: only visible to organizer, registrants, and invitees
+  if (event.visibility === "PRIVATE" && event.organizerId !== userId) {
+    const hasAccess = userId
+      ? await prisma.registration.findUnique({
+          where: { userId_eventId: { userId, eventId } },
+        }) ||
+        await prisma.invitation.findUnique({
+          where: { receiverId_eventId: { receiverId: userId, eventId } },
+        })
+      : null;
+
+    if (!hasAccess) {
+      throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
+    }
   }
 
   return {
@@ -126,6 +141,17 @@ async function update(
       status: 403,
       message: "You are not the organizer of this event",
       code: "FORBIDDEN",
+    };
+  }
+
+  // Validate PAID+fee consistency on merged state (schema only checks provided fields)
+  const mergedType = data.type ?? event.type;
+  const mergedFee = data.fee ?? event.fee;
+  if (mergedType === "PAID" && mergedFee <= 0) {
+    throw {
+      status: 422,
+      message: "Paid events must have a fee greater than 0",
+      code: "VALIDATION_ERROR",
     };
   }
 

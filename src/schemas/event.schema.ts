@@ -21,15 +21,24 @@ const eventBaseSchema = z.object({
   category: z.string().max(50).default("General"),
 });
 
-export const createEventSchema = eventBaseSchema.refine(
-  (data) => !(data.type === "PAID" && data.fee <= 0),
+export const createEventSchema = eventBaseSchema
+  .refine((data) => new Date(data.date) > new Date(), {
+    message: "Event date must be in the future",
+    path: ["date"],
+  })
+  .refine((data) => !(data.type === "PAID" && data.fee <= 0), {
+    message: "Paid events must have a fee greater than 0",
+    path: ["fee"],
+  });
+
+export const updateEventSchema = eventBaseSchema.partial().refine(
+  (data) =>
+    !(data.type === "PAID" && data.fee !== undefined && data.fee <= 0),
   {
     message: "Paid events must have a fee greater than 0",
     path: ["fee"],
   },
 );
-
-export const updateEventSchema = eventBaseSchema.partial();
 
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 export type UpdateEventInput = z.infer<typeof updateEventSchema>;

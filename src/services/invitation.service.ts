@@ -16,6 +16,12 @@ async function create(eventId: string, senderId: string, receiverId: string) {
     };
   }
 
+  // Check receiver user exists
+  const receiver = await prisma.user.findUnique({ where: { id: receiverId } });
+  if (!receiver) {
+    throw { status: 404, message: "Invited user not found", code: "USER_NOT_FOUND" };
+  }
+
   // Check if receiver is already registered
   const existingRegistration = await prisma.registration.findUnique({
     where: { userId_eventId: { userId: receiverId, eventId } },

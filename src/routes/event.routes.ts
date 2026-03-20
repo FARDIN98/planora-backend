@@ -1,4 +1,6 @@
 import { Router } from "express";
+import { fromNodeHeaders } from "better-auth/node";
+import { auth } from "../lib/auth.js";
 import { requireAuth } from "../middleware/auth.js";
 import { validate, validateQuery } from "../middleware/validate.js";
 import { createEventSchema, updateEventSchema } from "../schemas/event.schema.js";
@@ -247,7 +249,16 @@ router.get("/", validateQuery(searchSchema), async (req, res) => {
  */
 router.get("/:id", async (req, res) => {
   try {
-    const event = await eventService.getById(req.params.id);
+    // Optional auth — resolve user if session exists, but don't block
+    let userId: string | undefined;
+    try {
+      const session = await auth.api.getSession({
+        headers: fromNodeHeaders(req.headers),
+      });
+      if (session) userId = session.user.id;
+    } catch {}
+
+    const event = await eventService.getById(req.params.id, userId);
     res.json({ success: true, data: event });
   } catch (error: any) {
     const status = error.status || 500;

@@ -100,12 +100,18 @@ router.post("/", requireAuth, async (req, res) => {
     const eventId = req.params.eventId;
     const userId = (req as any).user.id;
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+
+    // Validate redirect URLs against FRONTEND_URL to prevent open redirects
+    const rawSuccessUrl = req.body.successUrl;
+    const rawCancelUrl = req.body.cancelUrl;
     const successUrl =
-      req.body.successUrl ||
-      `${frontendUrl}/events/${eventId}?payment=success`;
+      rawSuccessUrl && rawSuccessUrl.startsWith(frontendUrl)
+        ? rawSuccessUrl
+        : `${frontendUrl}/events/${eventId}?payment=success`;
     const cancelUrl =
-      req.body.cancelUrl ||
-      `${frontendUrl}/events/${eventId}?payment=cancelled`;
+      rawCancelUrl && rawCancelUrl.startsWith(frontendUrl)
+        ? rawCancelUrl
+        : `${frontendUrl}/events/${eventId}?payment=cancelled`;
 
     const result = await registrationService.register(
       eventId,

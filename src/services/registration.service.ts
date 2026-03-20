@@ -42,16 +42,20 @@ async function register(
   try {
     if (isFree && isPublic) {
       // PUBLIC + FREE -> instant APPROVED
-      const registration = await prisma.registration.create({
-        data: { userId, eventId, status: "APPROVED" },
+      const registration = await prisma.registration.upsert({
+        where: { userId_eventId: { userId, eventId } },
+        create: { userId, eventId, status: "APPROVED" },
+        update: { status: "APPROVED" },
       });
       return { registration, requiresPayment: false };
     }
 
     if (isFree && !isPublic) {
       // PRIVATE + FREE -> PENDING for host approval
-      const registration = await prisma.registration.create({
-        data: { userId, eventId, status: "PENDING" },
+      const registration = await prisma.registration.upsert({
+        where: { userId_eventId: { userId, eventId } },
+        create: { userId, eventId, status: "PENDING" },
+        update: { status: "PENDING" },
       });
       return { registration, requiresPayment: false };
     }

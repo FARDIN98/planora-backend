@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Request, Response, NextFunction } from "express";
 
-export function validate(schema: z.ZodObject<any>) {
+export function validate(schema: z.ZodType<any>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.body);
 
@@ -22,7 +22,7 @@ export function validate(schema: z.ZodObject<any>) {
   };
 }
 
-export function validateQuery(schema: z.ZodObject<any>) {
+export function validateQuery(schema: z.ZodType<any>) {
   return (req: Request, res: Response, next: NextFunction) => {
     const result = schema.safeParse(req.query);
 

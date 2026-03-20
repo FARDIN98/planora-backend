@@ -12,28 +12,36 @@ interface CreateCheckoutParams {
 }
 
 async function createCheckoutSession(params: CreateCheckoutParams) {
-  const session = await stripe.checkout.sessions.create({
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: `Event: ${params.eventTitle}`,
+  // Append session_id template so frontend can verify payment completion
+  const successUrlWithSession = `${params.successUrl}${params.successUrl.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`;
+
+  const session = await stripe.checkout.sessions.create(
+    {
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: `Event: ${params.eventTitle}`,
+            },
+            unit_amount: Math.round(params.fee * 100),
           },
-          unit_amount: Math.round(params.fee * 100),
+          quantity: 1,
         },
-        quantity: 1,
+      ],
+      mode: "payment",
+      success_url: successUrlWithSession,
+      cancel_url: params.cancelUrl,
+      metadata: {
+        userId: params.userId,
+        eventId: params.eventId,
+        flow: params.flow,
       },
-    ],
-    mode: "payment",
-    success_url: params.successUrl,
-    cancel_url: params.cancelUrl,
-    metadata: {
-      userId: params.userId,
-      eventId: params.eventId,
-      flow: params.flow,
     },
-  });
+    {
+      idempotencyKey: `${params.flow}-${params.userId}-${params.eventId}`,
+    },
+  );
 
   return { url: session.url, sessionId: session.id };
 }

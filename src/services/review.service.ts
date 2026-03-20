@@ -58,6 +58,11 @@ async function create(eventId: string, userId: string, data: CreateReviewInput) 
 }
 
 async function listByEvent(eventId: string, page: number, limit: number) {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) {
+    throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
+  }
+
   const [reviews, total] = await Promise.all([
     prisma.review.findMany({
       where: { eventId },
