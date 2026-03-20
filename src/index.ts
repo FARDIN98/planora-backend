@@ -6,6 +6,7 @@ import { auth } from "./lib/auth.js";
 import { swaggerSpec, swaggerCssOverride } from "./config/swagger.js";
 import healthRoutes from "./routes/health.routes.js";
 import v1AuthRoutes from "./routes/v1.auth.routes.js";
+import eventRoutes from "./routes/event.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -47,6 +48,7 @@ app.use(express.json());
 // --- API v1 Routes ---
 app.use("/api/v1/health", healthRoutes);
 app.use("/api/v1/auth", v1AuthRoutes);
+app.use("/api/v1/events", eventRoutes);
 
 // Legacy health check (keep for backward compatibility with Render health checks)
 app.get("/api/health", (_req, res) => {

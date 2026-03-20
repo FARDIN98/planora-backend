@@ -36,6 +36,10 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
       name: "Auth",
       description: "Authentication — register, login, logout, and session management",
     },
+    {
+      name: "Events",
+      description: "Event management — create, list, update, delete events",
+    },
   ],
   components: {
     securitySchemes: {
@@ -80,6 +84,57 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
           userId: { type: "string" },
           expiresAt: { type: "string", format: "date-time" },
           token: { type: "string" },
+        },
+      },
+      Event: {
+        type: "object",
+        properties: {
+          id: { type: "string", example: "clxyz123abc" },
+          title: { type: "string", example: "Tech Conference 2026" },
+          description: { type: "string", example: "A comprehensive technology conference." },
+          date: { type: "string", format: "date-time" },
+          time: { type: "string", example: "09:00" },
+          venue: { type: "string", example: "Convention Center, Dhaka" },
+          visibility: { type: "string", enum: ["PUBLIC", "PRIVATE"], example: "PUBLIC" },
+          type: { type: "string", enum: ["FREE", "PAID"], example: "FREE" },
+          fee: { type: "number", example: 0 },
+          imageUrl: { type: "string", nullable: true },
+          isFeatured: { type: "boolean", example: false },
+          category: { type: "string", example: "General" },
+          organizerId: { type: "string" },
+          organizer: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+              email: { type: "string", format: "email" },
+              image: { type: "string", nullable: true },
+            },
+          },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      EventListResponse: {
+        type: "object",
+        properties: {
+          events: {
+            type: "array",
+            items: { $ref: "#/components/schemas/Event" },
+          },
+          total: { type: "integer", example: 25 },
+          page: { type: "integer", example: 1 },
+          limit: { type: "integer", example: 10 },
+          totalPages: { type: "integer", example: 3 },
+        },
+      },
+      PaginationMeta: {
+        type: "object",
+        properties: {
+          total: { type: "integer", description: "Total number of items" },
+          page: { type: "integer", description: "Current page number" },
+          limit: { type: "integer", description: "Items per page" },
+          totalPages: { type: "integer", description: "Total number of pages" },
         },
       },
     },
