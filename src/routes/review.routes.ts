@@ -118,7 +118,7 @@ router.post("/", requireAuth, validate(createReviewSchema), async (req, res) => 
  *     summary: List reviews for an event
  *     description: |
  *       Returns a paginated list of reviews for an event, including reviewer info.
- *       No authentication required (public endpoint).
+ *       No authentication required (public endpoint). Returns 404 if event does not exist.
  *     parameters:
  *       - in: path
  *         name: eventId
@@ -167,6 +167,12 @@ router.post("/", requireAuth, validate(createReviewSchema), async (req, res) => 
  *                       type: integer
  *                     totalPages:
  *                       type: integer
+ *       404:
+ *         description: Event not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get("/", validateQuery(paginationSchema), async (req, res) => {
   try {

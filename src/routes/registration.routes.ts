@@ -21,6 +21,8 @@ const router = Router({ mergeParams: true });
  *       - **Private + Paid**: Returns Stripe Checkout URL, pending host approval after payment
  *
  *       Users cannot register for their own events. Duplicate registrations return 409.
+ *       Previously rejected users can re-register. Redirect URLs (successUrl, cancelUrl)
+ *       must match the frontend origin — invalid URLs are replaced with safe defaults.
  *     security:
  *       - cookieAuth: []
  *     parameters:

@@ -19,6 +19,7 @@ const router = Router();
  *       Create a new event. Requires authentication.
  *       The authenticated user becomes the event organizer.
  *       For paid events, the fee must be greater than 0.
+ *       Event date must be in the future.
  *     security:
  *       - cookieAuth: []
  *     requestBody:
@@ -119,7 +120,8 @@ router.post("/", requireAuth, validate(createEventSchema), async (req, res) => {
  *     description: |
  *       Returns a paginated list of events. Supports search by title or organizer name,
  *       filtering by visibility, type, and category, and sorting by date, createdAt, or title.
- *       No authentication required.
+ *       No authentication required. Defaults to PUBLIC events only — PRIVATE events are
+ *       excluded from listings unless explicitly filtered.
  *     parameters:
  *       - in: query
  *         name: page
@@ -210,7 +212,8 @@ router.get("/", validateQuery(searchSchema), async (req, res) => {
  *     summary: Get event details
  *     description: |
  *       Returns a single event with organizer info, average rating, and review count.
- *       No authentication required.
+ *       Authentication is optional. PRIVATE events are only visible to the organizer,
+ *       registered participants, and invited users — returns 404 for others.
  *     parameters:
  *       - in: path
  *         name: id
