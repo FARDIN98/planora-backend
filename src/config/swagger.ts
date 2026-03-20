@@ -45,6 +45,14 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
       description: "Event participation — join events, manage registrations",
     },
     {
+      name: "Reviews",
+      description: "Reviews and ratings -- rate events, write/edit/delete reviews",
+    },
+    {
+      name: "Invitations",
+      description: "Invitation management -- invite users, accept/decline invitations",
+    },
+    {
       name: "Webhooks",
       description: "Stripe webhook endpoint for payment confirmation",
     },
@@ -145,6 +153,26 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
           totalPages: { type: "integer", description: "Total number of pages" },
         },
       },
+      Review: {
+        type: "object",
+        properties: {
+          id: { type: "string", example: "clxyz789ghi" },
+          rating: { type: "integer", minimum: 1, maximum: 5, example: 4 },
+          comment: { type: "string", example: "Great event! Really enjoyed the sessions." },
+          userId: { type: "string" },
+          eventId: { type: "string" },
+          user: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+              image: { type: "string", nullable: true },
+            },
+          },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
       Registration: {
         type: "object",
         properties: {
@@ -164,6 +192,48 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
               id: { type: "string" },
               name: { type: "string" },
               email: { type: "string", format: "email" },
+            },
+          },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      Invitation: {
+        type: "object",
+        properties: {
+          id: { type: "string", example: "clxyz789inv" },
+          status: {
+            type: "string",
+            enum: ["PENDING", "ACCEPTED", "DECLINED"],
+            example: "PENDING",
+          },
+          senderId: { type: "string" },
+          receiverId: { type: "string" },
+          eventId: { type: "string" },
+          stripeSessionId: { type: "string", nullable: true },
+          amountPaid: { type: "number", nullable: true },
+          receiver: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+              email: { type: "string", format: "email" },
+            },
+          },
+          sender: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+            },
+          },
+          event: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              title: { type: "string" },
+              type: { type: "string", enum: ["FREE", "PAID"] },
+              fee: { type: "number" },
             },
           },
           createdAt: { type: "string", format: "date-time" },

@@ -9,6 +9,8 @@ import v1AuthRoutes from "./routes/v1.auth.routes.js";
 import eventRoutes from "./routes/event.routes.js";
 import registrationRoutes, { userRegistrationRouter } from "./routes/registration.routes.js";
 import { stripeWebhookHandler } from "./routes/webhook.routes.js";
+import reviewRoutes, { userReviewRouter } from "./routes/review.routes.js";
+import invitationRoutes, { userInvitationRouter } from "./routes/invitation.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -56,6 +58,10 @@ app.use("/api/v1/auth", v1AuthRoutes);
 app.use("/api/v1/events", eventRoutes);
 app.use("/api/v1/events/:eventId/registrations", registrationRoutes);
 app.use("/api/v1/registrations", userRegistrationRouter);
+app.use("/api/v1/events/:eventId/reviews", reviewRoutes);
+app.use("/api/v1/reviews", userReviewRouter);
+app.use("/api/v1/events/:eventId/invitations", invitationRoutes);
+app.use("/api/v1/invitations", userInvitationRouter);
 
 // Legacy health check (keep for backward compatibility with Render health checks)
 app.get("/api/health", (_req, res) => {
