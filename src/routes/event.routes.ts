@@ -94,6 +94,12 @@ const router = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.post("/", requireAuth, validate(createEventSchema), async (req, res) => {
   try {
@@ -250,6 +256,12 @@ router.get("/", validateQuery(searchSchema), async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.get("/my", requireAuth, validateQuery(paginationSchema), async (req, res) => {
   try {
@@ -429,6 +441,12 @@ router.get("/:id", optionalAuth, async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.put("/:id", requireAuth, validate(updateEventSchema), async (req, res) => {
   try {
@@ -503,6 +521,12 @@ router.put("/:id", requireAuth, validate(updateEventSchema), async (req, res) =>
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.delete("/:id", requireAuth, async (req, res) => {
   try {
@@ -574,6 +598,12 @@ const adminEventRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 adminEventRouter.delete("/:id", requireAdmin, async (req, res) => {
   try {
