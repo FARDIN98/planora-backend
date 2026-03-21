@@ -4,7 +4,6 @@ import type { CreateReviewInput, UpdateReviewInput } from "../schemas/review.sch
 const userSelect = {
   id: true,
   name: true,
-  image: true,
 };
 
 async function create(eventId: string, userId: string, data: CreateReviewInput) {

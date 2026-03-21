@@ -6,7 +6,6 @@ const organizerSelect = {
   id: true,
   name: true,
   email: true,
-  image: true,
 };
 
 async function create(data: CreateEventInput, organizerId: string) {
