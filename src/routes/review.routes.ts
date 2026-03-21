@@ -21,7 +21,7 @@ const router = Router({ mergeParams: true });
  *       Only APPROVED participants can review. Organizers cannot review their own events.
  *       Each user can only submit one review per event.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: eventId
@@ -196,7 +196,7 @@ const userReviewRouter = Router();
  *       Returns a paginated list of reviews submitted by the authenticated user,
  *       including event details (id, title, date).
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -282,7 +282,7 @@ userReviewRouter.get("/my", requireAuth, validateQuery(paginationSchema), catchA
  *       Update rating and/or comment of a review. Only the review author can edit.
  *       At least one field (rating or comment) must be provided.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: reviewId
@@ -370,7 +370,7 @@ userReviewRouter.put("/:reviewId", requireAuth, validate(updateReviewSchema), ca
  *       Hard delete a review from the database. Only the review author can delete.
  *       After deletion, event average rating and review count recalculate on next fetch.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: reviewId

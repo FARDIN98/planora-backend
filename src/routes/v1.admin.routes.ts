@@ -173,7 +173,7 @@ adminUserRouter.get("/", catchAsync(async (req: Request, res: Response) => {
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 adminUserRouter.delete("/:id", catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params.id as string;
 
   if (id === (req as any).user.id) {
     res.status(400).json({

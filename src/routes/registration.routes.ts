@@ -25,7 +25,7 @@ const router = Router({ mergeParams: true });
  *       Previously rejected users can re-register. Redirect URLs (successUrl, cancelUrl)
  *       must match the frontend origin — invalid URLs are replaced with safe defaults.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: eventId
@@ -140,7 +140,7 @@ router.post("/", requireAuth, catchAsync(async (req, res) => {
  *       Returns a paginated list of registrations for an event.
  *       Only the event organizer (host) can view registrations.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: eventId
@@ -238,7 +238,7 @@ router.get("/", requireAuth, validateQuery(paginationSchema), catchAsync(async (
  *       Update the status of a registration. Only the event organizer can perform this action.
  *       Valid status transitions: APPROVED, REJECTED, BANNED.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: eventId
@@ -336,7 +336,7 @@ const userRegistrationRouter = Router();
  *       Returns a paginated list of the authenticated user's event registrations,
  *       including event details and organizer info.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page

@@ -16,7 +16,7 @@ const router = Router();
  *     summary: Create a new account
  *     description: |
  *       Register a new user with name, email, and password.
- *       On success, a JWT token is returned for immediate authentication.
+ *       On success, a JWT accessToken is returned for immediate authentication.
  *       Password must be at least 8 characters.
  *     requestBody:
  *       required: true
@@ -42,7 +42,7 @@ const router = Router();
  *                 example: "securepass123"
  *                 description: Must be at least 8 characters
  *     responses:
- *       200:
+ *       201:
  *         description: Account created successfully
  *         content:
  *           application/json:
@@ -57,9 +57,9 @@ const router = Router();
  *                   properties:
  *                     user:
  *                       $ref: '#/components/schemas/User'
- *                     token:
+ *                     accessToken:
  *                       type: string
- *                       description: JWT token for authentication
+ *                       description: JWT access token for authentication
  *       409:
  *         description: Email already registered
  *         content:
@@ -133,13 +133,13 @@ router.post("/register", catchAsync(async (req: Request, res: Response) => {
     data: { name: name.trim(), email: email.toLowerCase(), password: hashedPassword },
   });
 
-  const token = signToken({ id: user.id, name: user.name, email: user.email, role: user.role });
+  const accessToken = signToken({ id: user.id, name: user.name, email: user.email, role: user.role });
 
-  res.json({
+  res.status(201).json({
     success: true,
     data: {
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
-      token,
+      accessToken,
     },
   });
 }));
@@ -152,7 +152,7 @@ router.post("/register", catchAsync(async (req: Request, res: Response) => {
  *     summary: Sign in to an existing account
  *     description: |
  *       Authenticate with email and password.
- *       On success, a JWT token is returned for subsequent authenticated requests.
+ *       On success, a JWT accessToken is returned for subsequent authenticated requests.
  *     requestBody:
  *       required: true
  *       content:
@@ -185,9 +185,9 @@ router.post("/register", catchAsync(async (req: Request, res: Response) => {
  *                   properties:
  *                     user:
  *                       $ref: '#/components/schemas/User'
- *                     token:
+ *                     accessToken:
  *                       type: string
- *                       description: JWT token for authentication
+ *                       description: JWT access token for authentication
  *       401:
  *         description: Invalid email or password
  *         content:
@@ -241,13 +241,13 @@ router.post("/login", catchAsync(async (req: Request, res: Response) => {
     return;
   }
 
-  const token = signToken({ id: user.id, name: user.name, email: user.email, role: user.role });
+  const accessToken = signToken({ id: user.id, name: user.name, email: user.email, role: user.role });
 
   res.json({
     success: true,
     data: {
       user: { id: user.id, name: user.name, email: user.email, role: user.role },
-      token,
+      accessToken,
     },
   });
 }));
@@ -332,15 +332,25 @@ router.post("/logout", (_req: Request, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.get("/me", requireAuth, (req: Request, res: Response) => {
-  const user = (req as any).user;
+router.get("/me", requireAuth, catchAsync(async (req: Request, res: Response) => {
+  const user = await prisma.user.findUnique({
+    where: { id: (req as any).user.id },
+    select: { id: true, name: true, email: true, role: true },
+  });
+
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      error: { message: "User not found", code: "UNAUTHORIZED" },
+    });
+    return;
+  }
+
   res.json({
     success: true,
-    data: {
-      user: { id: user.id, name: user.name, email: user.email, role: user.role },
-    },
+    data: { user },
   });
-});
+}));
 
 /**
  * @swagger
@@ -349,7 +359,7 @@ router.get("/me", requireAuth, (req: Request, res: Response) => {
  *     tags: [Auth]
  *     summary: Update user profile
  *     description: |
- *       Update the authenticated user's name. A fresh JWT token is returned
+ *       Update the authenticated user's name. A fresh JWT accessToken is returned
  *       with the updated payload. Email changes are not allowed.
  *     security:
  *       - bearerAuth: []
@@ -381,9 +391,9 @@ router.get("/me", requireAuth, (req: Request, res: Response) => {
  *                   properties:
  *                     user:
  *                       $ref: '#/components/schemas/User'
- *                     token:
+ *                     accessToken:
  *                       type: string
- *                       description: Fresh JWT token with updated user data
+ *                       description: Fresh JWT access token with updated user data
  *       401:
  *         description: Not authenticated
  *         content:
@@ -419,13 +429,13 @@ router.put("/me", requireAuth, catchAsync(async (req: Request, res: Response) =>
     data: { name: name.trim() },
   });
 
-  const token = signToken({ id: updated.id, name: updated.name, email: updated.email, role: updated.role });
+  const accessToken = signToken({ id: updated.id, name: updated.name, email: updated.email, role: updated.role });
 
   res.json({
     success: true,
     data: {
       user: { id: updated.id, name: updated.name, email: updated.email, role: updated.role },
-      token,
+      accessToken,
     },
   });
 }));

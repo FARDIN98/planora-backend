@@ -20,7 +20,7 @@ const router = Router();
  *       For paid events, the fee must be greater than 0.
  *       Event date must be in the future.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -197,7 +197,7 @@ router.get("/", validateQuery(searchSchema), catchAsync(async (req, res) => {
  *       Returns a paginated list of events where the authenticated user is the organizer.
  *       Requires authentication.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -320,7 +320,7 @@ router.get("/:id", optionalAuth, catchAsync(async (req, res) => {
  *       Update an event. Only the event organizer can update their own event.
  *       All fields are optional (PATCH-style update via PUT).
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -422,7 +422,7 @@ router.put("/:id", requireAuth, validate(updateEventSchema), catchAsync(async (r
  *       Delete an event. Only the event organizer can delete their own event.
  *       Cascade deletes associated registrations, reviews, and invitations.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
@@ -494,7 +494,7 @@ const adminEventRouter = Router();
  *       Admin-only endpoint to delete any event regardless of ownership.
  *       Cascade deletes associated registrations, reviews, and invitations.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id

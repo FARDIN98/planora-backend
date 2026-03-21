@@ -12,7 +12,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   }
 
   try {
-    const token = authHeader.split(" ")[1];
+    const token = authHeader.split(" ")[1]!;
     const payload = verifyToken(token);
     (req as any).user = payload;
     next();
@@ -28,7 +28,7 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
   if (authHeader?.startsWith("Bearer ")) {
     try {
-      const token = authHeader.split(" ")[1];
+      const token = authHeader.split(" ")[1]!;
       const payload = verifyToken(token);
       (req as any).user = payload;
     } catch {
@@ -39,31 +39,14 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
 }
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-  if (!authHeader?.startsWith("Bearer ")) {
-    res.status(401).json({
-      success: false,
-      error: { message: "Unauthorized", code: "UNAUTHORIZED" },
-    });
-    return;
-  }
-
-  try {
-    const token = authHeader.split(" ")[1];
-    const payload = verifyToken(token);
-    if (payload.role !== "admin") {
+  requireAuth(req, res, () => {
+    if ((req as any).user.role !== "admin") {
       res.status(403).json({
         success: false,
         error: { message: "Forbidden", code: "FORBIDDEN" },
       });
       return;
     }
-    (req as any).user = payload;
     next();
-  } catch {
-    res.status(401).json({
-      success: false,
-      error: { message: "Unauthorized", code: "UNAUTHORIZED" },
-    });
-  }
+  });
 }

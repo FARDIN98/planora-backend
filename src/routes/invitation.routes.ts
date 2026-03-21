@@ -20,7 +20,7 @@ const router = Router({ mergeParams: true });
  *       - Cannot invite a user who already has a pending invitation (409)
  *       - Re-inviting after a decline is allowed (old invitation deleted, new one created)
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: eventId
@@ -101,7 +101,7 @@ router.post("/", requireAuth, validate(createInvitationSchema), catchAsync(async
  *       Returns a paginated list of invitations for an event.
  *       Only the event organizer (host) can view invitations.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: eventId
@@ -200,7 +200,7 @@ const userInvitationRouter = Router();
  *       Returns a paginated list of the authenticated user's received invitations,
  *       including event details (with type for Pay & Accept button) and sender info.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: query
  *         name: page
@@ -289,7 +289,7 @@ userInvitationRouter.get("/my", requireAuth, validateQuery(paginationSchema), ca
  *       - **Accept (paid event)**: Returns Stripe Checkout URL for "Pay & Accept" flow.
  *         After payment, the webhook sets ACCEPTED and creates APPROVED registration.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: invitationId
