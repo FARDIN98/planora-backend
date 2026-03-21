@@ -28,7 +28,10 @@ export const auth = betterAuth({
     process.env.FRONTEND_URL || "http://localhost:3000",
   ],
   advanced: {
-    trustedProxyHeaders: true,
+    defaultCookieAttributes: {
+      sameSite: "none",
+      secure: true,
+    },
   },
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
