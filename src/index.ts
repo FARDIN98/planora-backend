@@ -1,9 +1,12 @@
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
 import { toNodeHandler } from "better-auth/node";
 import { auth } from "./lib/auth.js";
 import { swaggerSpec, swaggerCssOverride } from "./config/swagger.js";
+import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
+import { errorHandler } from "./middleware/error-handler.js";
 import healthRoutes from "./routes/health.routes.js";
 import v1AuthRoutes from "./routes/v1.auth.routes.js";
 import eventRoutes, { adminEventRouter } from "./routes/event.routes.js";
@@ -29,6 +32,9 @@ app.use(cors({
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
 }));
 
+// Security headers -- after CORS, before routes
+app.use(helmet());
+
 // Swagger API documentation -- always light mode
 app.use(
   "/api/docs",
@@ -52,6 +58,10 @@ app.post("/api/webhooks/stripe", express.raw({ type: "application/json" }), stri
 // Body parsing for all OTHER routes (after auth handler and webhook)
 app.use(express.json());
 
+// Rate limiting -- after body parsing, before route handlers
+app.use("/api/v1/auth", authLimiter); // stricter limit on auth endpoints
+app.use("/api/v1", apiLimiter); // general limit on all API endpoints
+
 // --- API v1 Routes ---
 app.use("/api/v1/health", healthRoutes);
 app.use("/api/v1/auth", v1AuthRoutes);
@@ -68,6 +78,9 @@ app.use("/api/v1/invitations", userInvitationRouter);
 app.get("/api/health", (_req, res) => {
   res.json({ success: true, data: { status: "ok", timestamp: new Date().toISOString() } });
 });
+
+// Global error handler -- MUST be last middleware (after all route mounts)
+app.use(errorHandler);
 
 // Start server
 app.listen(PORT, () => {
