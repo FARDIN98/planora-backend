@@ -53,6 +53,10 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
       description: "Invitation management -- invite users, accept/decline invitations",
     },
     {
+      name: "Admin",
+      description: "Admin-only operations -- manage events and users",
+    },
+    {
       name: "Webhooks",
       description: "Stripe webhook endpoint for payment confirmation",
     },

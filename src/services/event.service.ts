@@ -116,10 +116,21 @@ async function getById(eventId: string, userId?: string) {
     }
   }
 
+  // Include user's registration status if authenticated
+  let userRegistration = null;
+  if (userId) {
+    const reg = await prisma.registration.findFirst({
+      where: { eventId: event.id, userId },
+      select: { id: true, status: true },
+    });
+    userRegistration = reg;
+  }
+
   return {
     ...event,
     averageRating: reviewStats._avg.rating ?? 0,
     reviewCount: reviewStats._count.rating,
+    userRegistration,
   };
 }
 
@@ -191,4 +202,32 @@ async function remove(eventId: string, userId: string) {
   return { message: "Event deleted successfully" };
 }
 
-export const eventService = { create, list, getById, update, remove };
+async function getMyEvents(userId: string, page = 1, limit = 10) {
+  const skip = (page - 1) * limit;
+  const where = { organizerId: userId };
+  const [events, total] = await Promise.all([
+    prisma.event.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: "desc" },
+      include: {
+        organizer: { select: organizerSelect },
+        _count: { select: { registrations: true } },
+      },
+    }),
+    prisma.event.count({ where }),
+  ]);
+  return { events, total, page, limit, totalPages: Math.ceil(total / limit) };
+}
+
+async function adminDelete(eventId: string) {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) {
+    throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
+  }
+  await prisma.event.delete({ where: { id: eventId } });
+  return { message: "Event deleted" };
+}
+
+export const eventService = { create, list, getById, update, remove, getMyEvents, adminDelete };

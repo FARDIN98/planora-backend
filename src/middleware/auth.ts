@@ -20,6 +20,21 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
   next();
 }
 
+export async function optionalAuth(req: Request, res: Response, next: NextFunction) {
+  try {
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+    if (session) {
+      (req as any).session = session.session;
+      (req as any).user = session.user;
+    }
+  } catch {
+    // No session -- continue as anonymous
+  }
+  next();
+}
+
 export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers),

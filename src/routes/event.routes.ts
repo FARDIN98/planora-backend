@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { fromNodeHeaders } from "better-auth/node";
 import { auth } from "../lib/auth.js";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, optionalAuth, requireAdmin } from "../middleware/auth.js";
 import { validate, validateQuery } from "../middleware/validate.js";
 import { createEventSchema, updateEventSchema } from "../schemas/event.schema.js";
-import { searchSchema } from "../schemas/common.schema.js";
+import { paginationSchema, searchSchema } from "../schemas/common.schema.js";
 import { eventService } from "../services/event.service.js";
 
 const router = Router();
@@ -206,12 +206,78 @@ router.get("/", validateQuery(searchSchema), async (req, res) => {
 
 /**
  * @swagger
+ * /api/v1/events/my:
+ *   get:
+ *     tags: [Events]
+ *     summary: List events organized by the authenticated user
+ *     description: |
+ *       Returns a paginated list of events where the authenticated user is the organizer.
+ *       Requires authentication.
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: Items per page
+ *     responses:
+ *       200:
+ *         description: User's organized events
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/EventListResponse'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+router.get("/my", requireAuth, validateQuery(paginationSchema), async (req, res) => {
+  try {
+    const userId = (req as any).user.id;
+    const { page, limit } = (req as any).validatedQuery;
+    const result = await eventService.getMyEvents(userId, page, limit);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    const status = error.status || 500;
+    res.status(status).json({
+      success: false,
+      error: {
+        message: error.message || "Internal server error",
+        code: error.code || "INTERNAL_ERROR",
+      },
+    });
+  }
+});
+
+/**
+ * @swagger
  * /api/v1/events/{id}:
  *   get:
  *     tags: [Events]
  *     summary: Get event details
  *     description: |
- *       Returns a single event with organizer info, average rating, and review count.
+ *       Returns a single event with organizer info, average rating, review count,
+ *       and the authenticated user's registration status (if logged in).
  *       Authentication is optional. PRIVATE events are only visible to the organizer,
  *       registered participants, and invited users — returns 404 for others.
  *     parameters:
@@ -243,6 +309,16 @@ router.get("/", validateQuery(searchSchema), async (req, res) => {
  *                         reviewCount:
  *                           type: integer
  *                           example: 12
+ *                         userRegistration:
+ *                           type: object
+ *                           nullable: true
+ *                           description: The authenticated user's registration for this event (null if not logged in or not registered)
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             status:
+ *                               type: string
+ *                               enum: [PENDING, APPROVED, REJECTED, BANNED]
  *       404:
  *         description: Event not found
  *         content:
@@ -250,17 +326,9 @@ router.get("/", validateQuery(searchSchema), async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/:id", async (req, res) => {
+router.get("/:id", optionalAuth, async (req, res) => {
   try {
-    // Optional auth — resolve user if session exists, but don't block
-    let userId: string | undefined;
-    try {
-      const session = await auth.api.getSession({
-        headers: fromNodeHeaders(req.headers),
-      });
-      if (session) userId = session.user.id;
-    } catch {}
-
+    const userId = (req as any).user?.id;
     const event = await eventService.getById(req.params.id, userId);
     res.json({ success: true, data: event });
   } catch (error: any) {
@@ -455,4 +523,73 @@ router.delete("/:id", requireAuth, async (req, res) => {
   }
 });
 
+// --- Admin Event Routes ---
+
+const adminEventRouter = Router();
+
+/**
+ * @swagger
+ * /api/v1/admin/events/{id}:
+ *   delete:
+ *     tags: [Admin]
+ *     summary: Delete any event (admin only)
+ *     description: |
+ *       Admin-only endpoint to delete any event regardless of ownership.
+ *       Cascade deletes associated registrations, reviews, and invitations.
+ *     security:
+ *       - cookieAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *     responses:
+ *       200:
+ *         description: Event deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Event deleted"
+ *       403:
+ *         description: Forbidden (not admin)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Event not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ */
+adminEventRouter.delete("/:id", requireAdmin, async (req, res) => {
+  try {
+    const result = await eventService.adminDelete(req.params.id);
+    res.json({ success: true, data: result });
+  } catch (error: any) {
+    const status = error.status || 500;
+    res.status(status).json({
+      success: false,
+      error: {
+        message: error.message || "Internal server error",
+        code: error.code || "INTERNAL_ERROR",
+      },
+    });
+  }
+});
+
+export { adminEventRouter };
 export default router;
