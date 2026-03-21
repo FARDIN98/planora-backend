@@ -1,15 +1,12 @@
 const REQUIRED_ENV = [
   "DATABASE_URL",
-  "BETTER_AUTH_SECRET",
-  "BETTER_AUTH_URL",
+  "JWT_SECRET",
   "FRONTEND_URL",
 ] as const;
 
 const OPTIONAL_ENV = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
-  "GOOGLE_CLIENT_ID",
-  "GOOGLE_CLIENT_SECRET",
 ] as const;
 
 export function validateEnv(): void {

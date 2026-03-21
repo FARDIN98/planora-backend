@@ -1,13 +1,9 @@
-import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "../lib/auth.js";
+import { verifyToken } from "../lib/jwt.js";
 import type { Request, Response, NextFunction } from "express";
 
-export async function requireAuth(req: Request, res: Response, next: NextFunction) {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
-
-  if (!session) {
+export function requireAuth(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
     res.status(401).json({
       success: false,
       error: { message: "Unauthorized", code: "UNAUTHORIZED" },
@@ -15,40 +11,59 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   }
 
-  (req as any).session = session.session;
-  (req as any).user = session.user;
-  next();
+  try {
+    const token = authHeader.split(" ")[1];
+    const payload = verifyToken(token);
+    (req as any).user = payload;
+    next();
+  } catch {
+    res.status(401).json({
+      success: false,
+      error: { message: "Unauthorized", code: "UNAUTHORIZED" },
+    });
+  }
 }
 
-export async function optionalAuth(req: Request, res: Response, next: NextFunction) {
-  try {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
-    if (session) {
-      (req as any).session = session.session;
-      (req as any).user = session.user;
+export function optionalAuth(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.split(" ")[1];
+      const payload = verifyToken(token);
+      (req as any).user = payload;
+    } catch {
+      // Invalid token -- continue as anonymous
     }
-  } catch {
-    // No session -- continue as anonymous
   }
   next();
 }
 
-export async function requireAdmin(req: Request, res: Response, next: NextFunction) {
-  const session = await auth.api.getSession({
-    headers: fromNodeHeaders(req.headers),
-  });
-
-  if (!session || session.user.role !== "admin") {
-    res.status(403).json({
+export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader?.startsWith("Bearer ")) {
+    res.status(401).json({
       success: false,
-      error: { message: "Forbidden", code: "FORBIDDEN" },
+      error: { message: "Unauthorized", code: "UNAUTHORIZED" },
     });
     return;
   }
 
-  (req as any).session = session.session;
-  (req as any).user = session.user;
-  next();
+  try {
+    const token = authHeader.split(" ")[1];
+    const payload = verifyToken(token);
+    if (payload.role !== "admin") {
+      res.status(403).json({
+        success: false,
+        error: { message: "Forbidden", code: "FORBIDDEN" },
+      });
+      return;
+    }
+    (req as any).user = payload;
+    next();
+  } catch {
+    res.status(401).json({
+      success: false,
+      error: { message: "Unauthorized", code: "UNAUTHORIZED" },
+    });
+  }
 }

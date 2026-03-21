@@ -1,7 +1,7 @@
 import swaggerJSDoc from "swagger-jsdoc";
 
 const PORT = process.env.PORT || 5001;
-const BASE_URL = process.env.BETTER_AUTH_URL || `http://localhost:${PORT}`;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
   openapi: "3.0.3",
@@ -34,7 +34,7 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
     },
     {
       name: "Auth",
-      description: "Authentication — register, login, logout, and session management",
+      description: "Authentication — register, login, logout, and profile management",
     },
     {
       name: "Events",
@@ -63,11 +63,11 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
   ],
   components: {
     securitySchemes: {
-      cookieAuth: {
-        type: "apiKey",
-        in: "cookie",
-        name: "better-auth.session_token",
-        description: "Session cookie set automatically after login",
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+        description: "JWT token obtained from /api/v1/auth/login or /api/v1/auth/register",
       },
     },
     schemas: {
@@ -91,19 +91,8 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
           name: { type: "string", example: "John Doe" },
           email: { type: "string", format: "email", example: "john@example.com" },
           role: { type: "string", enum: ["user", "admin"], example: "user" },
-          image: { type: "string", nullable: true },
-          emailVerified: { type: "boolean", example: false },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
-        },
-      },
-      Session: {
-        type: "object",
-        properties: {
-          id: { type: "string" },
-          userId: { type: "string" },
-          expiresAt: { type: "string", format: "date-time" },
-          token: { type: "string" },
         },
       },
       Event: {
@@ -128,7 +117,6 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
               id: { type: "string" },
               name: { type: "string" },
               email: { type: "string", format: "email" },
-              image: { type: "string", nullable: true },
             },
           },
           createdAt: { type: "string", format: "date-time" },
@@ -170,7 +158,6 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
             properties: {
               id: { type: "string" },
               name: { type: "string" },
-              image: { type: "string", nullable: true },
             },
           },
           createdAt: { type: "string", format: "date-time" },
