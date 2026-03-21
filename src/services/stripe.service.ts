@@ -20,7 +20,7 @@ async function createCheckoutSession(params: CreateCheckoutParams) {
       line_items: [
         {
           price_data: {
-            currency: "usd",
+            currency: "bdt",
             product_data: {
               name: `Event: ${params.eventTitle}`,
             },
@@ -39,7 +39,7 @@ async function createCheckoutSession(params: CreateCheckoutParams) {
       },
     },
     {
-      idempotencyKey: `${params.flow}-${params.userId}-${params.eventId}`,
+      idempotencyKey: `${params.flow}-${params.userId}-${params.eventId}-${Date.now()}`,
     },
   );
 
