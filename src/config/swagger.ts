@@ -202,6 +202,22 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
           updatedAt: { type: "string", format: "date-time" },
         },
       },
+      RateLimitError: {
+        type: "object",
+        properties: {
+          success: { type: "boolean", example: false },
+          error: {
+            type: "object",
+            properties: {
+              message: {
+                type: "string",
+                example: "Too many requests, please try again later",
+              },
+              code: { type: "string", example: "RATE_LIMIT_EXCEEDED" },
+            },
+          },
+        },
+      },
       Invitation: {
         type: "object",
         properties: {
