@@ -89,6 +89,12 @@ const router = Router({ mergeParams: true });
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.post("/", requireAuth, validate(createReviewSchema), async (req, res) => {
   try {
@@ -273,6 +279,12 @@ const userReviewRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 userReviewRouter.get("/my", requireAuth, validateQuery(paginationSchema), async (req, res) => {
   try {
@@ -364,6 +376,12 @@ userReviewRouter.get("/my", requireAuth, validateQuery(paginationSchema), async 
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 userReviewRouter.put("/:reviewId", requireAuth, validate(updateReviewSchema), async (req, res) => {
   try {
@@ -438,6 +456,12 @@ userReviewRouter.put("/:reviewId", requireAuth, validate(updateReviewSchema), as
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 userReviewRouter.delete("/:reviewId", requireAuth, async (req, res) => {
   try {
