@@ -96,6 +96,12 @@ const router = Router({ mergeParams: true });
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.post("/", requireAuth, async (req, res) => {
   try {
@@ -211,6 +217,12 @@ router.post("/", requireAuth, async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.get("/", requireAuth, validateQuery(paginationSchema), async (req, res) => {
   try {
@@ -309,6 +321,12 @@ router.get("/", requireAuth, validateQuery(paginationSchema), async (req, res) =
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.patch("/:registrationId", requireAuth, validate(updateRegistrationSchema), async (req, res) => {
   try {
@@ -404,6 +422,12 @@ const userRegistrationRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 userRegistrationRouter.get("/my", requireAuth, validateQuery(paginationSchema), async (req, res) => {
   try {
