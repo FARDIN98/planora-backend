@@ -1,6 +1,4 @@
 import { Router } from "express";
-import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "../lib/auth.js";
 import { requireAuth, optionalAuth, requireAdmin } from "../middleware/auth.js";
 import { validate, validateQuery } from "../middleware/validate.js";
 import { createEventSchema, updateEventSchema } from "../schemas/event.schema.js";
