@@ -4,6 +4,7 @@ import { validate, validateQuery } from "../middleware/validate.js";
 import { updateRegistrationSchema } from "../schemas/registration.schema.js";
 import { paginationSchema } from "../schemas/common.schema.js";
 import { registrationService } from "../services/registration.service.js";
+import { catchAsync } from "../utils/catch-async.js";
 
 const router = Router({ mergeParams: true });
 
@@ -103,42 +104,31 @@ const router = Router({ mergeParams: true });
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.post("/", requireAuth, async (req, res) => {
-  try {
-    const eventId = req.params.eventId;
-    const userId = (req as any).user.id;
-    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+router.post("/", requireAuth, catchAsync(async (req, res) => {
+  const eventId = req.params.eventId;
+  const userId = (req as any).user.id;
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
 
-    // Validate redirect URLs against FRONTEND_URL to prevent open redirects
-    const rawSuccessUrl = req.body.successUrl;
-    const rawCancelUrl = req.body.cancelUrl;
-    const successUrl =
-      rawSuccessUrl && rawSuccessUrl.startsWith(frontendUrl)
-        ? rawSuccessUrl
-        : `${frontendUrl}/events/${eventId}?payment=success`;
-    const cancelUrl =
-      rawCancelUrl && rawCancelUrl.startsWith(frontendUrl)
-        ? rawCancelUrl
-        : `${frontendUrl}/events/${eventId}?payment=cancelled`;
+  // Validate redirect URLs against FRONTEND_URL to prevent open redirects
+  const rawSuccessUrl = req.body.successUrl;
+  const rawCancelUrl = req.body.cancelUrl;
+  const successUrl =
+    rawSuccessUrl && rawSuccessUrl.startsWith(frontendUrl)
+      ? rawSuccessUrl
+      : `${frontendUrl}/events/${eventId}?payment=success`;
+  const cancelUrl =
+    rawCancelUrl && rawCancelUrl.startsWith(frontendUrl)
+      ? rawCancelUrl
+      : `${frontendUrl}/events/${eventId}?payment=cancelled`;
 
-    const result = await registrationService.register(
-      eventId,
-      userId,
-      successUrl,
-      cancelUrl,
-    );
-    res.status(201).json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+  const result = await registrationService.register(
+    eventId,
+    userId,
+    successUrl,
+    cancelUrl,
+  );
+  res.status(201).json({ success: true, data: result });
+}));
 
 /**
  * @swagger
@@ -224,30 +214,19 @@ router.post("/", requireAuth, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.get("/", requireAuth, validateQuery(paginationSchema), async (req, res) => {
-  try {
-    const eventId = req.params.eventId;
-    const userId = (req as any).user.id;
-    const { page, limit } = (req as any).validatedQuery;
+router.get("/", requireAuth, validateQuery(paginationSchema), catchAsync(async (req, res) => {
+  const eventId = req.params.eventId;
+  const userId = (req as any).user.id;
+  const { page, limit } = (req as any).validatedQuery;
 
-    const result = await registrationService.listByEvent(
-      eventId,
-      userId,
-      page,
-      limit,
-    );
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+  const result = await registrationService.listByEvent(
+    eventId,
+    userId,
+    page,
+    limit,
+  );
+  res.json({ success: true, data: result });
+}));
 
 /**
  * @swagger
@@ -328,29 +307,18 @@ router.get("/", requireAuth, validateQuery(paginationSchema), async (req, res) =
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.patch("/:registrationId", requireAuth, validate(updateRegistrationSchema), async (req, res) => {
-  try {
-    const { eventId, registrationId } = req.params;
-    const userId = (req as any).user.id;
+router.patch("/:registrationId", requireAuth, validate(updateRegistrationSchema), catchAsync(async (req, res) => {
+  const { eventId, registrationId } = req.params;
+  const userId = (req as any).user.id;
 
-    const registration = await registrationService.updateStatus(
-      eventId,
-      registrationId,
-      req.body.status,
-      userId,
-    );
-    res.json({ success: true, data: registration });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+  const registration = await registrationService.updateStatus(
+    eventId,
+    registrationId,
+    req.body.status,
+    userId,
+  );
+  res.json({ success: true, data: registration });
+}));
 
 export default router;
 
@@ -429,27 +397,16 @@ const userRegistrationRouter = Router();
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-userRegistrationRouter.get("/my", requireAuth, validateQuery(paginationSchema), async (req, res) => {
-  try {
-    const userId = (req as any).user.id;
-    const { page, limit } = (req as any).validatedQuery;
+userRegistrationRouter.get("/my", requireAuth, validateQuery(paginationSchema), catchAsync(async (req, res) => {
+  const userId = (req as any).user.id;
+  const { page, limit } = (req as any).validatedQuery;
 
-    const result = await registrationService.getMyRegistrations(
-      userId,
-      page,
-      limit,
-    );
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+  const result = await registrationService.getMyRegistrations(
+    userId,
+    page,
+    limit,
+  );
+  res.json({ success: true, data: result });
+}));
 
 export { userRegistrationRouter };

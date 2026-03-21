@@ -6,6 +6,7 @@ import { validate, validateQuery } from "../middleware/validate.js";
 import { createEventSchema, updateEventSchema } from "../schemas/event.schema.js";
 import { paginationSchema, searchSchema } from "../schemas/common.schema.js";
 import { eventService } from "../services/event.service.js";
+import { catchAsync } from "../utils/catch-async.js";
 
 const router = Router();
 
@@ -101,21 +102,10 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.post("/", requireAuth, validate(createEventSchema), async (req, res) => {
-  try {
-    const event = await eventService.create(req.body, (req as any).user.id);
-    res.status(201).json({ success: true, data: event });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+router.post("/", requireAuth, validate(createEventSchema), catchAsync(async (req, res) => {
+  const event = await eventService.create(req.body, (req as any).user.id);
+  res.status(201).json({ success: true, data: event });
+}));
 
 /**
  * @swagger
@@ -194,21 +184,10 @@ router.post("/", requireAuth, validate(createEventSchema), async (req, res) => {
  *                 data:
  *                   $ref: '#/components/schemas/EventListResponse'
  */
-router.get("/", validateQuery(searchSchema), async (req, res) => {
-  try {
-    const result = await eventService.list((req as any).validatedQuery);
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+router.get("/", validateQuery(searchSchema), catchAsync(async (req, res) => {
+  const result = await eventService.list((req as any).validatedQuery);
+  res.json({ success: true, data: result });
+}));
 
 /**
  * @swagger
@@ -263,23 +242,12 @@ router.get("/", validateQuery(searchSchema), async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.get("/my", requireAuth, validateQuery(paginationSchema), async (req, res) => {
-  try {
-    const userId = (req as any).user.id;
-    const { page, limit } = (req as any).validatedQuery;
-    const result = await eventService.getMyEvents(userId, page, limit);
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+router.get("/my", requireAuth, validateQuery(paginationSchema), catchAsync(async (req, res) => {
+  const userId = (req as any).user.id;
+  const { page, limit } = (req as any).validatedQuery;
+  const result = await eventService.getMyEvents(userId, page, limit);
+  res.json({ success: true, data: result });
+}));
 
 /**
  * @swagger
@@ -338,22 +306,11 @@ router.get("/my", requireAuth, validateQuery(paginationSchema), async (req, res)
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/:id", optionalAuth, async (req, res) => {
-  try {
-    const userId = (req as any).user?.id;
-    const event = await eventService.getById(req.params.id, userId);
-    res.json({ success: true, data: event });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+router.get("/:id", optionalAuth, catchAsync(async (req, res) => {
+  const userId = (req as any).user?.id;
+  const event = await eventService.getById(req.params.id, userId);
+  res.json({ success: true, data: event });
+}));
 
 /**
  * @swagger
@@ -448,25 +405,14 @@ router.get("/:id", optionalAuth, async (req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.put("/:id", requireAuth, validate(updateEventSchema), async (req, res) => {
-  try {
-    const event = await eventService.update(
-      req.params.id,
-      req.body,
-      (req as any).user.id,
-    );
-    res.json({ success: true, data: event });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+router.put("/:id", requireAuth, validate(updateEventSchema), catchAsync(async (req, res) => {
+  const event = await eventService.update(
+    req.params.id,
+    req.body,
+    (req as any).user.id,
+  );
+  res.json({ success: true, data: event });
+}));
 
 /**
  * @swagger
@@ -528,24 +474,13 @@ router.put("/:id", requireAuth, validate(updateEventSchema), async (req, res) =>
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.delete("/:id", requireAuth, async (req, res) => {
-  try {
-    const result = await eventService.remove(
-      req.params.id,
-      (req as any).user.id,
-    );
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+router.delete("/:id", requireAuth, catchAsync(async (req, res) => {
+  const result = await eventService.remove(
+    req.params.id,
+    (req as any).user.id,
+  );
+  res.json({ success: true, data: result });
+}));
 
 // --- Admin Event Routes ---
 
@@ -605,21 +540,10 @@ const adminEventRouter = Router();
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-adminEventRouter.delete("/:id", requireAdmin, async (req, res) => {
-  try {
-    const result = await eventService.adminDelete(req.params.id);
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+adminEventRouter.delete("/:id", requireAdmin, catchAsync(async (req, res) => {
+  const result = await eventService.adminDelete(req.params.id);
+  res.json({ success: true, data: result });
+}));
 
 export { adminEventRouter };
 export default router;

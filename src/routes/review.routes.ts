@@ -4,6 +4,7 @@ import { validate, validateQuery } from "../middleware/validate.js";
 import { createReviewSchema, updateReviewSchema } from "../schemas/review.schema.js";
 import { paginationSchema } from "../schemas/common.schema.js";
 import { reviewService } from "../services/review.service.js";
+import { catchAsync } from "../utils/catch-async.js";
 
 // --- Event-scoped router (mounted at /api/v1/events/:eventId/reviews) ---
 
@@ -96,25 +97,14 @@ const router = Router({ mergeParams: true });
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.post("/", requireAuth, validate(createReviewSchema), async (req, res) => {
-  try {
-    const review = await reviewService.create(
-      req.params.eventId,
-      (req as any).user.id,
-      req.body,
-    );
-    res.status(201).json({ success: true, data: review });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+router.post("/", requireAuth, validate(createReviewSchema), catchAsync(async (req, res) => {
+  const review = await reviewService.create(
+    req.params.eventId,
+    (req as any).user.id,
+    req.body,
+  );
+  res.status(201).json({ success: true, data: review });
+}));
 
 /**
  * @swagger
@@ -180,26 +170,15 @@ router.post("/", requireAuth, validate(createReviewSchema), async (req, res) => 
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.get("/", validateQuery(paginationSchema), async (req, res) => {
-  try {
-    const { page, limit } = (req as any).validatedQuery;
-    const result = await reviewService.listByEvent(
-      req.params.eventId,
-      page,
-      limit,
-    );
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+router.get("/", validateQuery(paginationSchema), catchAsync(async (req, res) => {
+  const { page, limit } = (req as any).validatedQuery;
+  const result = await reviewService.listByEvent(
+    req.params.eventId,
+    page,
+    limit,
+  );
+  res.json({ success: true, data: result });
+}));
 
 export default router;
 
@@ -286,23 +265,12 @@ const userReviewRouter = Router();
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-userReviewRouter.get("/my", requireAuth, validateQuery(paginationSchema), async (req, res) => {
-  try {
-    const userId = (req as any).user.id;
-    const { page, limit } = (req as any).validatedQuery;
-    const result = await reviewService.getMyReviews(userId, page, limit);
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+userReviewRouter.get("/my", requireAuth, validateQuery(paginationSchema), catchAsync(async (req, res) => {
+  const userId = (req as any).user.id;
+  const { page, limit } = (req as any).validatedQuery;
+  const result = await reviewService.getMyReviews(userId, page, limit);
+  res.json({ success: true, data: result });
+}));
 
 /**
  * @swagger
@@ -383,25 +351,14 @@ userReviewRouter.get("/my", requireAuth, validateQuery(paginationSchema), async 
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-userReviewRouter.put("/:reviewId", requireAuth, validate(updateReviewSchema), async (req, res) => {
-  try {
-    const review = await reviewService.update(
-      req.params.reviewId,
-      (req as any).user.id,
-      req.body,
-    );
-    res.json({ success: true, data: review });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+userReviewRouter.put("/:reviewId", requireAuth, validate(updateReviewSchema), catchAsync(async (req, res) => {
+  const review = await reviewService.update(
+    req.params.reviewId,
+    (req as any).user.id,
+    req.body,
+  );
+  res.json({ success: true, data: review });
+}));
 
 /**
  * @swagger
@@ -463,23 +420,12 @@ userReviewRouter.put("/:reviewId", requireAuth, validate(updateReviewSchema), as
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-userReviewRouter.delete("/:reviewId", requireAuth, async (req, res) => {
-  try {
-    const result = await reviewService.remove(
-      req.params.reviewId,
-      (req as any).user.id,
-    );
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+userReviewRouter.delete("/:reviewId", requireAuth, catchAsync(async (req, res) => {
+  const result = await reviewService.remove(
+    req.params.reviewId,
+    (req as any).user.id,
+  );
+  res.json({ success: true, data: result });
+}));
 
 export { userReviewRouter };

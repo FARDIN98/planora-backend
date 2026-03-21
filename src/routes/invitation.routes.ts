@@ -4,6 +4,7 @@ import { validate, validateQuery } from "../middleware/validate.js";
 import { createInvitationSchema, respondInvitationSchema } from "../schemas/invitation.schema.js";
 import { paginationSchema } from "../schemas/common.schema.js";
 import { invitationService } from "../services/invitation.service.js";
+import { catchAsync } from "../utils/catch-async.js";
 
 const router = Router({ mergeParams: true });
 
@@ -82,24 +83,13 @@ const router = Router({ mergeParams: true });
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.post("/", requireAuth, validate(createInvitationSchema), async (req, res) => {
-  try {
-    const eventId = req.params.eventId;
-    const userId = (req as any).user.id;
+router.post("/", requireAuth, validate(createInvitationSchema), catchAsync(async (req, res) => {
+  const eventId = req.params.eventId;
+  const userId = (req as any).user.id;
 
-    const invitation = await invitationService.create(eventId, userId, req.body.receiverId);
-    res.status(201).json({ success: true, data: invitation });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+  const invitation = await invitationService.create(eventId, userId, req.body.receiverId);
+  res.status(201).json({ success: true, data: invitation });
+}));
 
 /**
  * @swagger
@@ -185,25 +175,14 @@ router.post("/", requireAuth, validate(createInvitationSchema), async (req, res)
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.get("/", requireAuth, validateQuery(paginationSchema), async (req, res) => {
-  try {
-    const eventId = req.params.eventId;
-    const userId = (req as any).user.id;
-    const { page, limit } = (req as any).validatedQuery;
+router.get("/", requireAuth, validateQuery(paginationSchema), catchAsync(async (req, res) => {
+  const eventId = req.params.eventId;
+  const userId = (req as any).user.id;
+  const { page, limit } = (req as any).validatedQuery;
 
-    const result = await invitationService.listByEvent(eventId, userId, page, limit);
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+  const result = await invitationService.listByEvent(eventId, userId, page, limit);
+  res.json({ success: true, data: result });
+}));
 
 export default router;
 
@@ -289,24 +268,13 @@ const userInvitationRouter = Router();
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-userInvitationRouter.get("/my", requireAuth, validateQuery(paginationSchema), async (req, res) => {
-  try {
-    const userId = (req as any).user.id;
-    const { page, limit } = (req as any).validatedQuery;
+userInvitationRouter.get("/my", requireAuth, validateQuery(paginationSchema), catchAsync(async (req, res) => {
+  const userId = (req as any).user.id;
+  const { page, limit } = (req as any).validatedQuery;
 
-    const result = await invitationService.getMyInvitations(userId, page, limit);
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+  const result = await invitationService.getMyInvitations(userId, page, limit);
+  res.json({ success: true, data: result });
+}));
 
 /**
  * @swagger
@@ -411,29 +379,18 @@ userInvitationRouter.get("/my", requireAuth, validateQuery(paginationSchema), as
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-userInvitationRouter.post("/:invitationId/respond", requireAuth, validate(respondInvitationSchema), async (req, res) => {
-  try {
-    const userId = (req as any).user.id;
-    const { invitationId } = req.params;
+userInvitationRouter.post("/:invitationId/respond", requireAuth, validate(respondInvitationSchema), catchAsync(async (req, res) => {
+  const userId = (req as any).user.id;
+  const { invitationId } = req.params;
 
-    const result = await invitationService.respond(
-      invitationId,
-      userId,
-      req.body.action,
-      req.body.successUrl,
-      req.body.cancelUrl,
-    );
-    res.json({ success: true, data: result });
-  } catch (error: any) {
-    const status = error.status || 500;
-    res.status(status).json({
-      success: false,
-      error: {
-        message: error.message || "Internal server error",
-        code: error.code || "INTERNAL_ERROR",
-      },
-    });
-  }
-});
+  const result = await invitationService.respond(
+    invitationId,
+    userId,
+    req.body.action,
+    req.body.successUrl,
+    req.body.cancelUrl,
+  );
+  res.json({ success: true, data: result });
+}));
 
 export { userInvitationRouter };
