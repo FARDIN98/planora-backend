@@ -78,6 +78,12 @@ const router = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many authentication attempts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.post("/register", async (req: Request, res: Response) => {
   try {
@@ -198,6 +204,12 @@ router.post("/register", async (req: Request, res: Response) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many authentication attempts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.post("/login", async (req: Request, res: Response) => {
   try {
@@ -270,6 +282,12 @@ router.post("/login", async (req: Request, res: Response) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many authentication attempts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.post("/logout", async (req: Request, res: Response) => {
   try {
@@ -330,6 +348,12 @@ router.post("/logout", async (req: Request, res: Response) => {
  *               error:
  *                 message: "Unauthorized"
  *                 code: "UNAUTHORIZED"
+ *       429:
+ *         description: Too many authentication attempts
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.get("/session", async (req: Request, res: Response) => {
   try {
