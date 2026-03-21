@@ -1,3 +1,6 @@
+import { validateEnv } from "./utils/env.js";
+validateEnv();
+
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
