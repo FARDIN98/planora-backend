@@ -1,4 +1,4 @@
-import { auth } from "../src/lib/auth.js";
+import bcrypt from "bcryptjs";
 import { prisma } from "../src/lib/prisma.js";
 
 async function main() {
@@ -7,25 +7,16 @@ async function main() {
   });
 
   if (!existingAdmin) {
-    // Create user via Better Auth API (handles password hashing via scrypt)
-    const result = await auth.api.signUpEmail({
-      body: {
+    const hashedPassword = await bcrypt.hash("admin123", 12);
+    await prisma.user.create({
+      data: {
         name: "Admin",
         email: "admin@planora.com",
-        password: "admin123",
+        password: hashedPassword,
+        role: "admin",
       },
     });
-
-    if (result) {
-      // Update role to admin via Prisma (signUpEmail creates with default "user" role)
-      await prisma.user.update({
-        where: { email: "admin@planora.com" },
-        data: { role: "admin" },
-      });
-      console.log("Admin user seeded: admin@planora.com / admin123 (role: admin)");
-    } else {
-      console.error("Failed to create admin user via auth.api.signUpEmail");
-    }
+    console.log("Admin user seeded: admin@planora.com / admin123 (role: admin)");
   } else {
     console.log("Admin user already exists, skipping seed.");
   }

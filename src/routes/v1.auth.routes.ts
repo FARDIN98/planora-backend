@@ -1,6 +1,9 @@
 import { Router } from "express";
-import { fromNodeHeaders } from "better-auth/node";
-import { auth } from "../lib/auth.js";
+import bcrypt from "bcryptjs";
+import { prisma } from "../lib/prisma.js";
+import { signToken } from "../lib/jwt.js";
+import { requireAuth } from "../middleware/auth.js";
+import { catchAsync } from "../utils/catch-async.js";
 import type { Request, Response } from "express";
 
 const router = Router();
@@ -13,7 +16,7 @@ const router = Router();
  *     summary: Create a new account
  *     description: |
  *       Register a new user with name, email, and password.
- *       On success, a session cookie is set automatically (autoSignIn is enabled).
+ *       On success, a JWT token is returned for immediate authentication.
  *       Password must be at least 8 characters.
  *     requestBody:
  *       required: true
@@ -26,7 +29,7 @@ const router = Router();
  *               name:
  *                 type: string
  *                 example: "John Doe"
- *                 description: Full name of the user
+ *                 description: Full name of the user (min 2 characters)
  *               email:
  *                 type: string
  *                 format: email
@@ -40,12 +43,7 @@ const router = Router();
  *                 description: Must be at least 8 characters
  *     responses:
  *       200:
- *         description: Account created successfully. Session cookie is set.
- *         headers:
- *           Set-Cookie:
- *             description: Session cookie for authentication
- *             schema:
- *               type: string
+ *         description: Account created successfully
  *         content:
  *           application/json:
  *             schema:
@@ -59,8 +57,9 @@ const router = Router();
  *                   properties:
  *                     user:
  *                       $ref: '#/components/schemas/User'
- *                     session:
- *                       $ref: '#/components/schemas/Session'
+ *                     token:
+ *                       type: string
+ *                       description: JWT token for authentication
  *       409:
  *         description: Email already registered
  *         content:
@@ -85,58 +84,65 @@ const router = Router();
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.post("/register", async (req: Request, res: Response) => {
-  try {
-    const { name, email, password } = req.body;
+router.post("/register", catchAsync(async (req: Request, res: Response) => {
+  const { name, email, password } = req.body;
 
-    if (!name || !email || !password) {
-      res.status(422).json({
-        success: false,
-        error: { message: "Name, email, and password are required", code: "VALIDATION_ERROR" },
-      });
-      return;
-    }
-
-    if (password.length < 8) {
-      res.status(422).json({
-        success: false,
-        error: { message: "Password must be at least 8 characters", code: "VALIDATION_ERROR" },
-      });
-      return;
-    }
-
-    const result = await auth.api.signUpEmail({
-      body: { name, email, password },
-      headers: fromNodeHeaders(req.headers),
-    });
-
-    // Forward Set-Cookie headers from Better Auth
-    const setCookieHeader = (result as any)?.headers?.get?.("set-cookie");
-    if (setCookieHeader) {
-      res.setHeader("set-cookie", setCookieHeader);
-    }
-
-    res.json({
-      success: true,
-      data: {
-        user: result.user,
-        session: result.session,
-      },
-    });
-  } catch (error: any) {
-    if (error?.message?.toLowerCase().includes("already") || error?.code === "USER_ALREADY_EXISTS") {
-      res.status(409).json({
-        success: false,
-        error: { message: "An account with this email already exists", code: "USER_ALREADY_EXISTS" },
-      });
-      return;
-    }
-    res.status(500).json({
+  if (!name || !email || !password) {
+    res.status(422).json({
       success: false,
-      error: { message: "Internal server error", code: "INTERNAL_ERROR" },
+      error: { message: "Name, email, and password are required", code: "VALIDATION_ERROR" },
     });
+    return;
   }
-});
+
+  if (typeof name !== "string" || name.trim().length < 2) {
+    res.status(422).json({
+      success: false,
+      error: { message: "Name must be at least 2 characters", code: "VALIDATION_ERROR" },
+    });
+    return;
+  }
+
+  if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    res.status(422).json({
+      success: false,
+      error: { message: "Invalid email address", code: "VALIDATION_ERROR" },
+    });
+    return;
+  }
+
+  if (typeof password !== "string" || password.length < 8) {
+    res.status(422).json({
+      success: false,
+      error: { message: "Password must be at least 8 characters", code: "VALIDATION_ERROR" },
+    });
+    return;
+  }
+
+  const existingUser = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  if (existingUser) {
+    res.status(409).json({
+      success: false,
+      error: { message: "An account with this email already exists", code: "USER_ALREADY_EXISTS" },
+    });
+    return;
+  }
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+  const user = await prisma.user.create({
+    data: { name: name.trim(), email: email.toLowerCase(), password: hashedPassword },
+  });
+
+  const token = signToken({ id: user.id, name: user.name, email: user.email, role: user.role });
+
+  res.json({
+    success: true,
+    data: {
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      token,
+    },
+  });
+}));
 
 /**
  * @swagger
@@ -146,8 +152,7 @@ router.post("/register", async (req: Request, res: Response) => {
  *     summary: Sign in to an existing account
  *     description: |
  *       Authenticate with email and password.
- *       On success, a session cookie is set automatically.
- *       Use this cookie for subsequent authenticated requests.
+ *       On success, a JWT token is returned for subsequent authenticated requests.
  *     requestBody:
  *       required: true
  *       content:
@@ -166,12 +171,7 @@ router.post("/register", async (req: Request, res: Response) => {
  *                 example: "securepass123"
  *     responses:
  *       200:
- *         description: Login successful. Session cookie is set.
- *         headers:
- *           Set-Cookie:
- *             description: Session cookie for authentication
- *             schema:
- *               type: string
+ *         description: Login successful
  *         content:
  *           application/json:
  *             schema:
@@ -185,8 +185,9 @@ router.post("/register", async (req: Request, res: Response) => {
  *                   properties:
  *                     user:
  *                       $ref: '#/components/schemas/User'
- *                     session:
- *                       $ref: '#/components/schemas/Session'
+ *                     token:
+ *                       type: string
+ *                       description: JWT token for authentication
  *       401:
  *         description: Invalid email or password
  *         content:
@@ -211,42 +212,45 @@ router.post("/register", async (req: Request, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.post("/login", async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
+router.post("/login", catchAsync(async (req: Request, res: Response) => {
+  const { email, password } = req.body;
 
-    if (!email || !password) {
-      res.status(422).json({
-        success: false,
-        error: { message: "Email and password are required", code: "VALIDATION_ERROR" },
-      });
-      return;
-    }
-
-    const result = await auth.api.signInEmail({
-      body: { email, password },
-      headers: fromNodeHeaders(req.headers),
+  if (!email || !password) {
+    res.status(422).json({
+      success: false,
+      error: { message: "Email and password are required", code: "VALIDATION_ERROR" },
     });
+    return;
+  }
 
-    const setCookieHeader = (result as any)?.headers?.get?.("set-cookie");
-    if (setCookieHeader) {
-      res.setHeader("set-cookie", setCookieHeader);
-    }
-
-    res.json({
-      success: true,
-      data: {
-        user: result.user,
-        session: result.session,
-      },
-    });
-  } catch (error: any) {
+  const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+  if (!user) {
     res.status(401).json({
       success: false,
       error: { message: "Invalid email or password", code: "INVALID_CREDENTIALS" },
     });
+    return;
   }
-});
+
+  const isValidPassword = await bcrypt.compare(password, user.password);
+  if (!isValidPassword) {
+    res.status(401).json({
+      success: false,
+      error: { message: "Invalid email or password", code: "INVALID_CREDENTIALS" },
+    });
+    return;
+  }
+
+  const token = signToken({ id: user.id, name: user.name, email: user.email, role: user.role });
+
+  res.json({
+    success: true,
+    data: {
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+      token,
+    },
+  });
+}));
 
 /**
  * @swagger
@@ -255,10 +259,8 @@ router.post("/login", async (req: Request, res: Response) => {
  *     tags: [Auth]
  *     summary: Sign out the current user
  *     description: |
- *       Invalidate the current session and clear the session cookie.
- *       Requires an active session (cookie-based authentication).
- *     security:
- *       - cookieAuth: []
+ *       Logout is a no-op on the server since JWT is stateless.
+ *       The client should remove the token from localStorage.
  *     responses:
  *       200:
  *         description: Successfully logged out
@@ -276,12 +278,6 @@ router.post("/login", async (req: Request, res: Response) => {
  *                     message:
  *                       type: string
  *                       example: "Logged out successfully"
- *       401:
- *         description: No active session
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/ErrorResponse'
  *       429:
  *         description: Too many authentication attempts
  *         content:
@@ -289,39 +285,27 @@ router.post("/login", async (req: Request, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.post("/logout", async (req: Request, res: Response) => {
-  try {
-    await auth.api.signOut({
-      headers: fromNodeHeaders(req.headers),
-    });
-
-    res.json({
-      success: true,
-      data: { message: "Logged out successfully" },
-    });
-  } catch {
-    res.status(401).json({
-      success: false,
-      error: { message: "No active session", code: "UNAUTHORIZED" },
-    });
-  }
+router.post("/logout", (_req: Request, res: Response) => {
+  res.json({
+    success: true,
+    data: { message: "Logged out successfully" },
+  });
 });
 
 /**
  * @swagger
- * /api/v1/auth/session:
+ * /api/v1/auth/me:
  *   get:
  *     tags: [Auth]
- *     summary: Get current session and user info
+ *     summary: Get current user profile
  *     description: |
- *       Retrieve the authenticated user's profile and session details.
- *       Requires a valid session cookie. Use this to check if a user is
- *       currently logged in and to fetch their profile data.
+ *       Retrieve the authenticated user's profile from the JWT token.
+ *       Requires a valid Bearer token in the Authorization header.
  *     security:
- *       - cookieAuth: []
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Active session found
+ *         description: User profile retrieved
  *         content:
  *           application/json:
  *             schema:
@@ -335,53 +319,115 @@ router.post("/logout", async (req: Request, res: Response) => {
  *                   properties:
  *                     user:
  *                       $ref: '#/components/schemas/User'
- *                     session:
- *                       $ref: '#/components/schemas/Session'
  *       401:
- *         description: No active session
+ *         description: Not authenticated
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
- *             example:
- *               success: false
- *               error:
- *                 message: "Unauthorized"
- *                 code: "UNAUTHORIZED"
  *       429:
- *         description: Too many authentication attempts
+ *         description: Too many requests
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/RateLimitError'
  */
-router.get("/session", async (req: Request, res: Response) => {
-  try {
-    const session = await auth.api.getSession({
-      headers: fromNodeHeaders(req.headers),
-    });
-
-    if (!session) {
-      res.status(401).json({
-        success: false,
-        error: { message: "Unauthorized", code: "UNAUTHORIZED" },
-      });
-      return;
-    }
-
-    res.json({
-      success: true,
-      data: {
-        user: session.user,
-        session: session.session,
-      },
-    });
-  } catch {
-    res.status(401).json({
-      success: false,
-      error: { message: "Unauthorized", code: "UNAUTHORIZED" },
-    });
-  }
+router.get("/me", requireAuth, (req: Request, res: Response) => {
+  const user = (req as any).user;
+  res.json({
+    success: true,
+    data: {
+      user: { id: user.id, name: user.name, email: user.email, role: user.role },
+    },
+  });
 });
+
+/**
+ * @swagger
+ * /api/v1/auth/me:
+ *   put:
+ *     tags: [Auth]
+ *     summary: Update user profile
+ *     description: |
+ *       Update the authenticated user's name. A fresh JWT token is returned
+ *       with the updated payload. Email changes are not allowed.
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [name]
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "Jane Doe"
+ *                 description: Updated name (min 2 characters)
+ *     responses:
+ *       200:
+ *         description: Profile updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     token:
+ *                       type: string
+ *                       description: Fresh JWT token with updated user data
+ *       401:
+ *         description: Not authenticated
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       422:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
+ */
+router.put("/me", requireAuth, catchAsync(async (req: Request, res: Response) => {
+  const { name } = req.body;
+
+  if (!name || typeof name !== "string" || name.trim().length < 2) {
+    res.status(422).json({
+      success: false,
+      error: { message: "Name must be at least 2 characters", code: "VALIDATION_ERROR" },
+    });
+    return;
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: (req as any).user.id },
+    data: { name: name.trim() },
+  });
+
+  const token = signToken({ id: updated.id, name: updated.name, email: updated.email, role: updated.role });
+
+  res.json({
+    success: true,
+    data: {
+      user: { id: updated.id, name: updated.name, email: updated.email, role: updated.role },
+      token,
+    },
+  });
+}));
 
 export default router;
