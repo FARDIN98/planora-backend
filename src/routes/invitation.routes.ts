@@ -75,6 +75,12 @@ const router = Router({ mergeParams: true });
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.post("/", requireAuth, validate(createInvitationSchema), async (req, res) => {
   try {
@@ -172,6 +178,12 @@ router.post("/", requireAuth, validate(createInvitationSchema), async (req, res)
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 router.get("/", requireAuth, validateQuery(paginationSchema), async (req, res) => {
   try {
@@ -270,6 +282,12 @@ const userInvitationRouter = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 userInvitationRouter.get("/my", requireAuth, validateQuery(paginationSchema), async (req, res) => {
   try {
@@ -386,6 +404,12 @@ userInvitationRouter.get("/my", requireAuth, validateQuery(paginationSchema), as
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/RateLimitError'
  */
 userInvitationRouter.post("/:invitationId/respond", requireAuth, validate(respondInvitationSchema), async (req, res) => {
   try {
