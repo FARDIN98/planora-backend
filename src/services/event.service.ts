@@ -205,6 +205,122 @@ async function getMyEvents(userId: string, page = 1, limit = 10) {
   return { events, total, page, limit, totalPages: Math.ceil(total / limit) };
 }
 
+async function adminList(query: SearchInput) {
+  const { page, limit, search, visibility, type, category, sortBy, sortOrder } =
+    query;
+
+  const where: any = {};
+  const andConditions: any[] = [];
+
+  if (search) {
+    andConditions.push({
+      OR: [
+        { title: { contains: search, mode: "insensitive" } },
+        { organizer: { name: { contains: search, mode: "insensitive" } } },
+      ],
+    });
+  }
+
+  // Admin sees ALL events — only filter by visibility if explicitly requested
+  if (visibility) {
+    andConditions.push({ visibility });
+  }
+
+  if (type) {
+    andConditions.push({ type });
+  }
+
+  if (category) {
+    andConditions.push({ category });
+  }
+
+  if (andConditions.length > 0) {
+    where.AND = andConditions;
+  }
+
+  const [events, total] = await Promise.all([
+    prisma.event.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { [sortBy]: sortOrder },
+      include: {
+        organizer: { select: organizerSelect },
+        _count: { select: { registrations: true } },
+      },
+    }),
+    prisma.event.count({ where }),
+  ]);
+
+  return {
+    events,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
+async function getFeatured(userId?: string) {
+  // Try to find admin-selected featured event (upcoming)
+  let event = await prisma.event.findFirst({
+    where: { isFeatured: true, date: { gte: new Date() } },
+    include: {
+      organizer: { select: organizerSelect },
+      _count: { select: { registrations: true } },
+    },
+  });
+
+  // Fallback: next upcoming public event
+  if (!event) {
+    event = await prisma.event.findFirst({
+      where: { visibility: "PUBLIC", date: { gte: new Date() } },
+      orderBy: { date: "asc" },
+      include: {
+        organizer: { select: organizerSelect },
+        _count: { select: { registrations: true } },
+      },
+    });
+  }
+
+  if (!event) return null;
+
+  let userRegistration = null;
+  if (userId) {
+    userRegistration = await prisma.registration.findFirst({
+      where: { eventId: event.id, userId },
+      select: { id: true, status: true },
+    });
+  }
+
+  return { ...event, userRegistration };
+}
+
+async function setFeatured(eventId: string) {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) {
+    throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
+  }
+
+  // Transaction: unset all featured, then set the chosen one
+  await prisma.$transaction([
+    prisma.event.updateMany({ where: { isFeatured: true }, data: { isFeatured: false } }),
+    prisma.event.update({ where: { id: eventId }, data: { isFeatured: true } }),
+  ]);
+
+  return { message: "Event set as featured", eventId };
+}
+
+async function unsetFeatured(eventId: string) {
+  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  if (!event) {
+    throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
+  }
+
+  await prisma.event.update({ where: { id: eventId }, data: { isFeatured: false } });
+  return { message: "Event unfeatured", eventId };
+}
+
 async function adminDelete(eventId: string) {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
   if (!event) {
@@ -214,4 +330,4 @@ async function adminDelete(eventId: string) {
   return { message: "Event deleted" };
 }
 
-export const eventService = { create, list, getById, update, remove, getMyEvents, adminDelete };
+export const eventService = { create, list, getById, update, remove, getMyEvents, adminList, getFeatured, setFeatured, unsetFeatured, adminDelete };

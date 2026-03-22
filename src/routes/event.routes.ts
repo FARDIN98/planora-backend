@@ -189,6 +189,50 @@ router.get("/", validateQuery(searchSchema), catchAsync(async (req, res) => {
 
 /**
  * @swagger
+ * /api/v1/events/featured:
+ *   get:
+ *     tags: [Events]
+ *     summary: Get the featured event
+ *     description: |
+ *       Returns the admin-selected featured event. Falls back to the next
+ *       upcoming public event if none is explicitly featured. Returns null
+ *       if no events exist. Includes the authenticated user's registration
+ *       status when a token is provided.
+ *     responses:
+ *       200:
+ *         description: Featured event (or null)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   nullable: true
+ *                   allOf:
+ *                     - $ref: '#/components/schemas/Event'
+ *                     - type: object
+ *                       properties:
+ *                         userRegistration:
+ *                           type: object
+ *                           nullable: true
+ *                           properties:
+ *                             id:
+ *                               type: string
+ *                             status:
+ *                               type: string
+ *                               enum: [PENDING, APPROVED, REJECTED, BANNED]
+ */
+router.get("/featured", optionalAuth, catchAsync(async (req, res) => {
+  const userId = (req as any).user?.id;
+  const event = await eventService.getFeatured(userId);
+  res.json({ success: true, data: event });
+}));
+
+/**
+ * @swagger
  * /api/v1/events/my:
  *   get:
  *     tags: [Events]
@@ -486,6 +530,81 @@ const adminEventRouter = Router();
 
 /**
  * @swagger
+ * /api/v1/admin/events:
+ *   get:
+ *     tags: [Admin]
+ *     summary: List all events including private (admin only)
+ *     description: |
+ *       Admin-only endpoint to list ALL events regardless of visibility.
+ *       Supports the same search, filter, and pagination as the public endpoint,
+ *       but does not default to PUBLIC — private events are included by default.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search by event title or organizer name
+ *       - in: query
+ *         name: visibility
+ *         schema:
+ *           type: string
+ *           enum: [PUBLIC, PRIVATE]
+ *         description: Optional filter — omit to see all
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [FREE, PAID]
+ *       - in: query
+ *         name: sortBy
+ *         schema:
+ *           type: string
+ *           enum: [date, createdAt, title]
+ *           default: date
+ *       - in: query
+ *         name: sortOrder
+ *         schema:
+ *           type: string
+ *           enum: [asc, desc]
+ *           default: asc
+ *     responses:
+ *       200:
+ *         description: All events with pagination
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   $ref: '#/components/schemas/EventListResponse'
+ *       403:
+ *         description: Forbidden (not admin)
+ */
+adminEventRouter.get("/", requireAdmin, validateQuery(searchSchema), catchAsync(async (req, res) => {
+  const result = await eventService.adminList((req as any).validatedQuery);
+  res.json({ success: true, data: result });
+}));
+
+/**
+ * @swagger
  * /api/v1/admin/events/{id}:
  *   delete:
  *     tags: [Admin]
@@ -540,6 +659,82 @@ const adminEventRouter = Router();
  */
 adminEventRouter.delete("/:id", requireAdmin, catchAsync(async (req, res) => {
   const result = await eventService.adminDelete(req.params.id);
+  res.json({ success: true, data: result });
+}));
+
+/**
+ * @swagger
+ * /api/v1/admin/events/{id}/featured:
+ *   patch:
+ *     tags: [Admin]
+ *     summary: Set an event as featured (admin only)
+ *     description: |
+ *       Mark an event as the featured event shown in the hero section.
+ *       Only one event can be featured at a time — setting a new featured
+ *       event automatically unsets the previous one.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *     responses:
+ *       200:
+ *         description: Event set as featured
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     message:
+ *                       type: string
+ *                       example: "Event set as featured"
+ *                     eventId:
+ *                       type: string
+ *       403:
+ *         description: Forbidden (not admin)
+ *       404:
+ *         description: Event not found
+ */
+adminEventRouter.patch("/:id/featured", requireAdmin, catchAsync(async (req, res) => {
+  const result = await eventService.setFeatured(req.params.id);
+  res.json({ success: true, data: result });
+}));
+
+/**
+ * @swagger
+ * /api/v1/admin/events/{id}/featured:
+ *   delete:
+ *     tags: [Admin]
+ *     summary: Remove featured status from an event (admin only)
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Event ID
+ *     responses:
+ *       200:
+ *         description: Featured status removed
+ *       403:
+ *         description: Forbidden (not admin)
+ *       404:
+ *         description: Event not found
+ */
+adminEventRouter.delete("/:id/featured", requireAdmin, catchAsync(async (req, res) => {
+  const result = await eventService.unsetFeatured(req.params.id);
   res.json({ success: true, data: result });
 }));
 
