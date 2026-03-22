@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma.js";
 import { stripeService } from "./stripe.service.js";
 
-async function create(eventId: string, senderId: string, receiverId: string) {
+async function create(eventId: string, senderId: string, email: string) {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
 
   if (!event) {
@@ -16,11 +16,13 @@ async function create(eventId: string, senderId: string, receiverId: string) {
     };
   }
 
-  // Check receiver user exists
-  const receiver = await prisma.user.findUnique({ where: { id: receiverId } });
+  // Look up receiver by email
+  const receiver = await prisma.user.findFirst({ where: { email } });
   if (!receiver) {
-    throw { status: 404, message: "Invited user not found", code: "USER_NOT_FOUND" };
+    throw { status: 404, message: "No user found with this email", code: "USER_NOT_FOUND" };
   }
+
+  const receiverId = receiver.id;
 
   // Check if receiver is already registered
   const existingRegistration = await prisma.registration.findUnique({
@@ -158,7 +160,7 @@ async function respond(
 }
 
 async function getMyInvitations(userId: string, page: number, limit: number) {
-  const [invitations, total] = await Promise.all([
+  const [rawInvitations, total] = await Promise.all([
     prisma.invitation.findMany({
       where: { receiverId: userId },
       skip: (page - 1) * limit,
@@ -175,6 +177,17 @@ async function getMyInvitations(userId: string, page: number, limit: number) {
     }),
     prisma.invitation.count({ where: { receiverId: userId } }),
   ]);
+
+  // Attach registration status for each invitation's event
+  const invitations = await Promise.all(
+    rawInvitations.map(async (inv) => {
+      const registration = await prisma.registration.findUnique({
+        where: { userId_eventId: { userId, eventId: inv.eventId } },
+        select: { status: true },
+      });
+      return { ...inv, registration };
+    }),
+  );
 
   return {
     invitations,

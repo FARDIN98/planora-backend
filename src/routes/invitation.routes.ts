@@ -34,11 +34,12 @@ const router = Router({ mergeParams: true });
  *         application/json:
  *           schema:
  *             type: object
- *             required: [receiverId]
+ *             required: [email]
  *             properties:
- *               receiverId:
+ *               email:
  *                 type: string
- *                 description: User ID of the person to invite
+ *                 format: email
+ *                 description: Email address of the user to invite
  *     responses:
  *       201:
  *         description: Invitation created successfully
@@ -87,7 +88,7 @@ router.post("/", requireAuth, validate(createInvitationSchema), catchAsync(async
   const eventId = req.params.eventId;
   const userId = (req as any).user.id;
 
-  const invitation = await invitationService.create(eventId, userId, req.body.receiverId);
+  const invitation = await invitationService.create(eventId, userId, req.body.email);
   res.status(201).json({ success: true, data: invitation });
 }));
 

@@ -16,6 +16,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Notification preferences
+  notifyInvitations Boolean @default(true)
+  notifyApprovals   Boolean @default(true)
+  notifyReviews     Boolean @default(true)
+
   // App relations
   events              Event[]
   registrations       Registration[]

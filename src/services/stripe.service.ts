@@ -68,8 +68,8 @@ async function handleRegistrationPayment(
     return;
   }
 
-  // Public paid events -> APPROVED immediately, Private paid events -> PENDING for host approval
-  const status = event.visibility === "PUBLIC" ? "APPROVED" : "PENDING";
+  // All paid events -> PENDING for host approval
+  const status = "PENDING";
 
   await prisma.registration.upsert({
     where: { userId_eventId: { userId, eventId } },
@@ -113,18 +113,18 @@ async function handleInvitationPayment(
     },
   });
 
-  // Invitation paid events skip host approval -- APPROVED directly
+  // Paid invitations -> PENDING for host approval
   await prisma.registration.upsert({
     where: { userId_eventId: { userId, eventId } },
     create: {
       userId,
       eventId,
-      status: "APPROVED",
+      status: "PENDING",
       stripeSessionId: sessionId,
       amountPaid: (amountTotal || 0) / 100,
     },
     update: {
-      status: "APPROVED",
+      status: "PENDING",
       stripeSessionId: sessionId,
       amountPaid: (amountTotal || 0) / 100,
     },

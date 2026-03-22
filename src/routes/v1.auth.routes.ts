@@ -440,4 +440,100 @@ router.put("/me", requireAuth, catchAsync(async (req: Request, res: Response) =>
   });
 }));
 
+/**
+ * @swagger
+ * /api/v1/auth/notifications:
+ *   get:
+ *     tags: [Auth]
+ *     summary: Get notification preferences
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Notification preferences
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     notifyInvitations:
+ *                       type: boolean
+ *                     notifyApprovals:
+ *                       type: boolean
+ *                     notifyReviews:
+ *                       type: boolean
+ */
+router.get("/notifications", requireAuth, catchAsync(async (req: Request, res: Response) => {
+  const user = await prisma.user.findUnique({
+    where: { id: (req as any).user.id },
+    select: { notifyInvitations: true, notifyApprovals: true, notifyReviews: true },
+  });
+
+  if (!user) {
+    res.status(401).json({
+      success: false,
+      error: { message: "User not found", code: "UNAUTHORIZED" },
+    });
+    return;
+  }
+
+  res.json({ success: true, data: user });
+}));
+
+/**
+ * @swagger
+ * /api/v1/auth/notifications:
+ *   put:
+ *     tags: [Auth]
+ *     summary: Update notification preferences
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               notifyInvitations:
+ *                 type: boolean
+ *               notifyApprovals:
+ *                 type: boolean
+ *               notifyReviews:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: Preferences updated
+ */
+router.put("/notifications", requireAuth, catchAsync(async (req: Request, res: Response) => {
+  const { notifyInvitations, notifyApprovals, notifyReviews } = req.body;
+
+  const data: Record<string, boolean> = {};
+  if (typeof notifyInvitations === "boolean") data.notifyInvitations = notifyInvitations;
+  if (typeof notifyApprovals === "boolean") data.notifyApprovals = notifyApprovals;
+  if (typeof notifyReviews === "boolean") data.notifyReviews = notifyReviews;
+
+  if (Object.keys(data).length === 0) {
+    res.status(422).json({
+      success: false,
+      error: { message: "At least one notification preference is required", code: "VALIDATION_ERROR" },
+    });
+    return;
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: (req as any).user.id },
+    data,
+    select: { notifyInvitations: true, notifyApprovals: true, notifyReviews: true },
+  });
+
+  res.json({ success: true, data: updated });
+}));
+
 export default router;

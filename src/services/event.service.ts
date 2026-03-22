@@ -86,6 +86,7 @@ async function getById(eventId: string, userId?: string) {
       where: { id: eventId },
       include: {
         organizer: { select: organizerSelect },
+        _count: { select: { registrations: true } },
       },
     }),
     prisma.review.aggregate({
@@ -97,22 +98,6 @@ async function getById(eventId: string, userId?: string) {
 
   if (!event) {
     throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
-  }
-
-  // PRIVATE events: only visible to organizer, registrants, and invitees
-  if (event.visibility === "PRIVATE" && event.organizerId !== userId) {
-    const hasAccess = userId
-      ? await prisma.registration.findUnique({
-          where: { userId_eventId: { userId, eventId } },
-        }) ||
-        await prisma.invitation.findUnique({
-          where: { receiverId_eventId: { receiverId: userId, eventId } },
-        })
-      : null;
-
-    if (!hasAccess) {
-      throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
-    }
   }
 
   // Include user's registration status if authenticated
