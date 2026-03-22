@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { stripeService } from "./stripe.service.js";
+import { emailService } from "./email.service.js";
 
 async function create(eventId: string, senderId: string, email: string) {
   const event = await prisma.event.findUnique({ where: { id: eventId } });
@@ -60,9 +61,19 @@ async function create(eventId: string, senderId: string, email: string) {
   const invitation = await prisma.invitation.create({
     data: { senderId, receiverId, eventId, status: "PENDING" },
     include: {
+      sender: { select: { id: true, name: true } },
       receiver: { select: { id: true, name: true, email: true } },
       event: { select: { id: true, title: true, type: true, fee: true } },
     },
+  });
+
+  // Fire-and-forget email notification
+  emailService.notifyInvitationReceived({
+    recipientId: invitation.receiver.id,
+    recipientEmail: invitation.receiver.email,
+    recipientName: invitation.receiver.name,
+    eventTitle: invitation.event.title,
+    senderName: invitation.sender.name,
   });
 
   return invitation;

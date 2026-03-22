@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import { stripeService } from "./stripe.service.js";
+import { emailService } from "./email.service.js";
 
 async function register(
   eventId: string,
@@ -47,6 +48,22 @@ async function register(
         create: { userId, eventId, status: "APPROVED" },
         update: { status: "APPROVED" },
       });
+
+      // Fire-and-forget confirmation email
+      const registrant = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { name: true, email: true },
+      });
+      if (registrant) {
+        emailService.notifyAutoApproved({
+          recipientId: userId,
+          recipientEmail: registrant.email,
+          recipientName: registrant.name,
+          eventTitle: event.title,
+          eventId,
+        });
+      }
+
       return { registration, requiresPayment: false };
     }
 
@@ -127,6 +144,16 @@ async function updateStatus(
     include: {
       user: { select: { id: true, name: true, email: true } },
     },
+  });
+
+  // Fire-and-forget status notification
+  emailService.notifyRegistrationStatusChanged({
+    recipientId: updated.user.id,
+    recipientEmail: updated.user.email,
+    recipientName: updated.user.name,
+    eventTitle: event.title,
+    eventId,
+    newStatus: status,
   });
 
   return updated;

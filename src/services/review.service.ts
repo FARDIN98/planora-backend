@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma.js";
 import type { CreateReviewInput, UpdateReviewInput } from "../schemas/review.schema.js";
+import { emailService } from "./email.service.js";
 
 const userSelect = {
   id: true,
@@ -7,8 +8,11 @@ const userSelect = {
 };
 
 async function create(eventId: string, userId: string, data: CreateReviewInput) {
-  // Fetch event
-  const event = await prisma.event.findUnique({ where: { id: eventId } });
+  // Fetch event with organizer info for notification
+  const event = await prisma.event.findUnique({
+    where: { id: eventId },
+    include: { organizer: { select: { id: true, name: true, email: true } } },
+  });
 
   if (!event) {
     throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
@@ -40,6 +44,17 @@ async function create(eventId: string, userId: string, data: CreateReviewInput) 
     const review = await prisma.review.create({
       data: { ...data, userId, eventId },
       include: { user: { select: userSelect } },
+    });
+
+    // Fire-and-forget review notification to organizer
+    emailService.notifyNewReview({
+      organizerId: event.organizer.id,
+      organizerEmail: event.organizer.email,
+      organizerName: event.organizer.name,
+      eventTitle: event.title,
+      reviewerName: review.user.name,
+      rating: data.rating,
+      eventId,
     });
 
     return review;
