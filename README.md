@@ -1,6 +1,8 @@
 # Planora — Backend
 
 REST API for **Planora**, a full-stack event management platform where users can create, discover, join, and manage events with role-based access, Stripe payments, and an invitation system.
+
+**Live URL:** https://planora-backend-u0fy.onrender.com
 ---
 
 ---
