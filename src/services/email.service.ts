@@ -1,18 +1,18 @@
-import { transporter } from "../lib/mailer.js";
+import { resend } from "../lib/mailer.js";
 import { prisma } from "../lib/prisma.js";
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
-function isSmtpConfigured(): boolean {
-  return !!(process.env.SMTP_USER && process.env.SMTP_PASS);
+function isEmailConfigured(): boolean {
+  return !!process.env.RESEND_API_KEY;
 }
 
 async function sendMail(to: string, subject: string, html: string): Promise<void> {
-  if (!isSmtpConfigured()) return;
+  if (!isEmailConfigured()) return;
 
   try {
-    await transporter.sendMail({
-      from: `"Planora" <${process.env.SMTP_USER}>`,
+    await resend.emails.send({
+      from: "Planora <onboarding@resend.dev>",
       to,
       subject,
       html,

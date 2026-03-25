@@ -7,8 +7,7 @@ const REQUIRED_ENV = [
 const OPTIONAL_ENV = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
-  "SMTP_USER",
-  "SMTP_PASS",
+  "RESEND_API_KEY",
 ] as const;
 
 export function validateEnv(): void {
