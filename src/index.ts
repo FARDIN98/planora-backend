@@ -16,6 +16,11 @@ import registrationRoutes, { userRegistrationRouter } from "./routes/registratio
 import { stripeWebhookHandler } from "./routes/webhook.routes.js";
 import reviewRoutes, { userReviewRouter } from "./routes/review.routes.js";
 import invitationRoutes, { userInvitationRouter } from "./routes/invitation.routes.js";
+import blogRoutes, { adminBlogRouter } from "./routes/blog.routes.js";
+import newsletterRoutes from "./routes/newsletter.routes.js";
+import statsRoutes from "./routes/stats.routes.js";
+import googleAuthRoutes from "./routes/google-auth.routes.js";
+import chatbotRoutes from "./routes/chatbot.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -72,6 +77,12 @@ app.use("/api/v1/events/:eventId/reviews", reviewRoutes);
 app.use("/api/v1/reviews", userReviewRouter);
 app.use("/api/v1/events/:eventId/invitations", invitationRoutes);
 app.use("/api/v1/invitations", userInvitationRouter);
+app.use("/api/v1/blog", blogRoutes);
+app.use("/api/v1/admin/blog", adminBlogRouter);
+app.use("/api/v1/newsletter", newsletterRoutes);
+app.use("/api/v1/stats", statsRoutes);
+app.use("/api/v1/auth", googleAuthRoutes);
+app.use("/api/v1/chatbot", chatbotRoutes);
 
 // Legacy health check (keep for backward compatibility with Render health checks)
 app.get("/api/health", (_req, res) => {
