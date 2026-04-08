@@ -9,7 +9,11 @@
     "start:bun": "bun src/index.ts",
     "db:migrate": "bunx prisma migrate deploy",
     "db:seed": "bunx prisma db seed",
+    "prisma:seed": "bun run prisma/seed.ts",
     "postinstall": "bunx prisma generate"
+  },
+  "prisma": {
+    "seed": "bun run prisma/seed.ts"
   },
   "devDependencies": {
     "@types/bcryptjs": "^3.0.0",
