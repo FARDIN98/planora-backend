@@ -10,7 +10,7 @@ const OPTIONAL_ENV = [
   "RESEND_API_KEY",
   "UNSPLASH_ACCESS_KEY",
   "GOOGLE_CLIENT_ID",
-  "GEMINI_API_KEY",
+  "GROQ_API_KEY",
 ] as const;
 
 export function validateEnv(): void {
