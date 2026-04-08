@@ -21,12 +21,16 @@ model User {
   notifyApprovals   Boolean @default(true)
   notifyReviews     Boolean @default(true)
 
+  // OAuth
+  googleId  String?  @unique
+
   // App relations
   events              Event[]
   registrations       Registration[]
   reviews             Review[]
   sentInvitations     Invitation[] @relation("InvitationSender")
   receivedInvitations Invitation[] @relation("InvitationReceiver")
+  blogPosts           BlogPost[]
 
   @@map("user")
 }
@@ -138,4 +142,30 @@ model Invitation {
 
   @@unique([receiverId, eventId])
   @@map("invitations")
+}
+
+model BlogPost {
+  id         String   @id @default(cuid())
+  title      String
+  content    String   // Rich text HTML from TipTap
+  excerpt    String?  // Auto-generated from content (first ~200 chars stripped of HTML)
+  coverImage String   // Required URL
+  tags       String   @default("") // Comma-separated free text
+  published  Boolean  @default(true)
+
+  authorId   String
+  author     User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("blog_posts")
+}
+
+model NewsletterSubscription {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+
+  @@map("newsletter_subscriptions")
 }
