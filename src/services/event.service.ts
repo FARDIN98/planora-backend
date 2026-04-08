@@ -27,8 +27,8 @@ async function create(data: CreateEventInput, organizerId: string) {
 }
 
 async function list(query: SearchInput) {
-  const { page, limit, search, visibility, type, category, sortBy, sortOrder } =
-    query;
+  const { page, limit, search, visibility, type, category, sortBy, sortOrder,
+    dateFrom, dateTo, priceMin, priceMax, venue } = query;
 
   const where: any = {};
   const andConditions: any[] = [];
@@ -53,8 +53,37 @@ async function list(query: SearchInput) {
     andConditions.push({ category });
   }
 
+  // Date range filtering
+  if (dateFrom || dateTo) {
+    const dateFilter: any = {};
+    if (dateFrom) dateFilter.gte = new Date(dateFrom);
+    if (dateTo) dateFilter.lte = new Date(dateTo);
+    andConditions.push({ date: dateFilter });
+  }
+
+  // Price range filtering
+  if (priceMin !== undefined || priceMax !== undefined) {
+    const feeFilter: any = {};
+    if (priceMin !== undefined) feeFilter.gte = priceMin;
+    if (priceMax !== undefined) feeFilter.lte = priceMax;
+    andConditions.push({ fee: feeFilter });
+  }
+
+  // Venue search
+  if (venue) {
+    andConditions.push({ venue: { contains: venue, mode: "insensitive" } });
+  }
+
   if (andConditions.length > 0) {
     where.AND = andConditions;
+  }
+
+  // Build orderBy — for popularity sort, order by registration count
+  let orderBy: any;
+  if (sortBy === "fee") {
+    orderBy = { fee: sortOrder };
+  } else {
+    orderBy = { [sortBy]: sortOrder };
   }
 
   const [events, total] = await Promise.all([
@@ -62,7 +91,7 @@ async function list(query: SearchInput) {
       where,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: { [sortBy]: sortOrder },
+      orderBy,
       include: {
         organizer: { select: organizerSelect },
         _count: { select: { registrations: true } },

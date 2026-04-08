@@ -14,7 +14,12 @@ export const searchSchema = paginationSchema.extend({
   visibility: z.enum(["PUBLIC", "PRIVATE"]).optional(),
   type: z.enum(["FREE", "PAID"]).optional(),
   category: z.string().optional(),
-  sortBy: z.enum(["date", "createdAt", "title"]).default("date"),
+  dateFrom: z.string().optional(),
+  dateTo: z.string().optional(),
+  priceMin: z.coerce.number().min(0).optional(),
+  priceMax: z.coerce.number().min(0).optional(),
+  venue: z.string().optional(),
+  sortBy: z.enum(["date", "createdAt", "title", "fee"]).default("date"),
   sortOrder: z.enum(["asc", "desc"]).default("asc"),
 });
 
