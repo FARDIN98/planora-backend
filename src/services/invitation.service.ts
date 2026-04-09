@@ -189,16 +189,20 @@ async function getMyInvitations(userId: string, page: number, limit: number) {
     prisma.invitation.count({ where: { receiverId: userId } }),
   ]);
 
-  // Attach registration status for each invitation's event
-  const invitations = await Promise.all(
-    rawInvitations.map(async (inv) => {
-      const registration = await prisma.registration.findUnique({
-        where: { userId_eventId: { userId, eventId: inv.eventId } },
-        select: { status: true },
-      });
-      return { ...inv, registration };
-    }),
-  );
+  // Batch-fetch registration statuses to avoid N+1 queries
+  const eventIds = rawInvitations.map((inv) => inv.eventId);
+  const registrations = eventIds.length > 0
+    ? await prisma.registration.findMany({
+        where: { userId, eventId: { in: eventIds } },
+        select: { eventId: true, status: true },
+      })
+    : [];
+  const regMap = new Map(registrations.map((r) => [r.eventId, { status: r.status }]));
+
+  const invitations = rawInvitations.map((inv) => ({
+    ...inv,
+    registration: regMap.get(inv.eventId) ?? null,
+  }));
 
   return {
     invitations,

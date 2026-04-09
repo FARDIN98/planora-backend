@@ -30,11 +30,15 @@ const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 app.set("trust proxy", 1);
 
 // CORS configuration -- must come before all route handlers
+const corsOrigins: string[] = [
+  process.env.FRONTEND_URL || "http://localhost:3000",
+];
+// Only allow localhost in non-production environments
+if (process.env.NODE_ENV !== "production") {
+  corsOrigins.push("http://localhost:3000");
+}
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || "http://localhost:3000",
-    "http://localhost:3000",
-  ],
+  origin: corsOrigins,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
 }));

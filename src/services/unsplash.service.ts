@@ -1,3 +1,8 @@
+/**
+ * NOTE: This service is currently unused (not imported by any route or other service).
+ * It is retained for potential future use — e.g., auto-assigning cover images to events
+ * from Unsplash based on category. Do not delete without checking planned features.
+ */
 import { prisma } from "../lib/prisma.js";
 
 const CATEGORY_QUERIES: Record<string, string> = {

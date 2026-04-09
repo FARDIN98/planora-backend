@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { OAuth2Client } from "google-auth-library";
+import crypto from "crypto";
 import { prisma } from "../lib/prisma.js";
 import { signToken } from "../lib/jwt.js";
 import { catchAsync } from "../utils/catch-async.js";
@@ -111,7 +112,7 @@ router.post("/google", catchAsync(async (req, res) => {
       data: {
         name: name || "Google User",
         email,
-        password: "", // Empty password for OAuth users
+        password: crypto.randomUUID() + crypto.randomUUID(), // Unguessable random password for OAuth users
         googleId,
       },
     });

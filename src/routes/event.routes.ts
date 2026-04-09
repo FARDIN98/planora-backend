@@ -101,7 +101,7 @@ const router = Router();
  *               $ref: '#/components/schemas/RateLimitError'
  */
 router.post("/", requireAuth, validate(createEventSchema), catchAsync(async (req, res) => {
-  const event = await eventService.create(req.body, (req as any).user.id);
+  const event = await eventService.create(req.body, req.user!.id);
   res.status(201).json({ success: true, data: event });
 }));
 
@@ -183,7 +183,7 @@ router.post("/", requireAuth, validate(createEventSchema), catchAsync(async (req
  *                   $ref: '#/components/schemas/EventListResponse'
  */
 router.get("/", validateQuery(searchSchema), catchAsync(async (req, res) => {
-  const result = await eventService.list((req as any).validatedQuery);
+  const result = await eventService.list(req.validatedQuery);
   res.json({ success: true, data: result });
 }));
 
@@ -226,7 +226,7 @@ router.get("/", validateQuery(searchSchema), catchAsync(async (req, res) => {
  *                               enum: [PENDING, APPROVED, REJECTED, BANNED]
  */
 router.get("/featured", optionalAuth, catchAsync(async (req, res) => {
-  const userId = (req as any).user?.id;
+  const userId = req.user?.id;
   const event = await eventService.getFeatured(userId);
   res.json({ success: true, data: event });
 }));
@@ -285,8 +285,8 @@ router.get("/featured", optionalAuth, catchAsync(async (req, res) => {
  *               $ref: '#/components/schemas/RateLimitError'
  */
 router.get("/my", requireAuth, validateQuery(paginationSchema), catchAsync(async (req, res) => {
-  const userId = (req as any).user.id;
-  const { page, limit } = (req as any).validatedQuery;
+  const userId = req.user!.id;
+  const { page, limit } = req.validatedQuery;
   const result = await eventService.getMyEvents(userId, page, limit);
   res.json({ success: true, data: result });
 }));
@@ -349,7 +349,7 @@ router.get("/my", requireAuth, validateQuery(paginationSchema), catchAsync(async
  *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.get("/:id", optionalAuth, catchAsync(async (req, res) => {
-  const userId = (req as any).user?.id;
+  const userId = req.user?.id;
   const event = await eventService.getById(req.params.id, userId);
   res.json({ success: true, data: event });
 }));
@@ -451,7 +451,7 @@ router.put("/:id", requireAuth, validate(updateEventSchema), catchAsync(async (r
   const event = await eventService.update(
     req.params.id,
     req.body,
-    (req as any).user.id,
+    req.user!.id,
   );
   res.json({ success: true, data: event });
 }));
@@ -519,7 +519,7 @@ router.put("/:id", requireAuth, validate(updateEventSchema), catchAsync(async (r
 router.delete("/:id", requireAuth, catchAsync(async (req, res) => {
   const result = await eventService.remove(
     req.params.id,
-    (req as any).user.id,
+    req.user!.id,
   );
   res.json({ success: true, data: result });
 }));
@@ -599,7 +599,7 @@ const adminEventRouter = Router();
  *         description: Forbidden (not admin)
  */
 adminEventRouter.get("/", requireAdmin, validateQuery(searchSchema), catchAsync(async (req, res) => {
-  const result = await eventService.adminList((req as any).validatedQuery);
+  const result = await eventService.adminList(req.validatedQuery);
   res.json({ success: true, data: result });
 }));
 

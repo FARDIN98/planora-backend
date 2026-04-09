@@ -3,6 +3,16 @@ import { prisma } from "../lib/prisma.js";
 
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
+/** Escape user-controlled strings before interpolating into HTML to prevent XSS */
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function isEmailConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
 }
@@ -64,9 +74,9 @@ async function notifyInvitationReceived(params: {
 
   const subject = `You've been invited to "${params.eventTitle}"`;
   const html = wrapHtml(`
-    <h2 style="margin:0 0 16px;">Hi ${params.recipientName},</h2>
+    <h2 style="margin:0 0 16px;">Hi ${escapeHtml(params.recipientName)},</h2>
     <p style="color:#3f3f46;line-height:1.6;">
-      <strong>${params.senderName}</strong> has invited you to <strong>${params.eventTitle}</strong>.
+      <strong>${escapeHtml(params.senderName)}</strong> has invited you to <strong>${escapeHtml(params.eventTitle)}</strong>.
     </p>
     <p style="margin:24px 0;">
       <a href="${FRONTEND_URL}/dashboard/invitations" style="${BTN}">View Invitation</a>
@@ -93,9 +103,9 @@ async function notifyAutoApproved(params: {
 
   const subject = `You're registered for "${params.eventTitle}"`;
   const html = wrapHtml(`
-    <h2 style="margin:0 0 16px;">Hi ${params.recipientName},</h2>
+    <h2 style="margin:0 0 16px;">Hi ${escapeHtml(params.recipientName)},</h2>
     <p style="color:#3f3f46;line-height:1.6;">
-      You've been successfully registered for <strong>${params.eventTitle}</strong>.
+      You've been successfully registered for <strong>${escapeHtml(params.eventTitle)}</strong>.
     </p>
     <p style="margin:24px 0;">
       <a href="${FRONTEND_URL}/events/${params.eventId}" style="${BTN}">View Event</a>
@@ -141,9 +151,9 @@ async function notifyRegistrationStatusChanged(params: {
 
   const subject = msg.subject(params.eventTitle);
   const html = wrapHtml(`
-    <h2 style="margin:0 0 16px;">Hi ${params.recipientName},</h2>
+    <h2 style="margin:0 0 16px;">Hi ${escapeHtml(params.recipientName)},</h2>
     <p style="color:#3f3f46;line-height:1.6;">${msg.body}</p>
-    <p style="color:#71717a;font-size:14px;">Event: <strong>${params.eventTitle}</strong></p>
+    <p style="color:#71717a;font-size:14px;">Event: <strong>${escapeHtml(params.eventTitle)}</strong></p>
     <p style="margin:24px 0;">
       <a href="${FRONTEND_URL}/events/${params.eventId}" style="${BTN}">View Event</a>
     </p>
@@ -172,9 +182,9 @@ async function notifyNewReview(params: {
   const stars = "\u2605".repeat(params.rating) + "\u2606".repeat(5 - params.rating);
   const subject = `New review on "${params.eventTitle}"`;
   const html = wrapHtml(`
-    <h2 style="margin:0 0 16px;">Hi ${params.organizerName},</h2>
+    <h2 style="margin:0 0 16px;">Hi ${escapeHtml(params.organizerName)},</h2>
     <p style="color:#3f3f46;line-height:1.6;">
-      <strong>${params.reviewerName}</strong> left a review on <strong>${params.eventTitle}</strong>.
+      <strong>${escapeHtml(params.reviewerName)}</strong> left a review on <strong>${escapeHtml(params.eventTitle)}</strong>.
     </p>
     <p style="font-size:24px;margin:16px 0;">${stars}</p>
     <p style="margin:24px 0;">

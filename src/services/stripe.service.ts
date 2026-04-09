@@ -39,7 +39,7 @@ async function createCheckoutSession(params: CreateCheckoutParams) {
       },
     },
     {
-      idempotencyKey: `${params.flow}-${params.userId}-${params.eventId}-${Date.now()}`,
+      idempotencyKey: `${params.flow}-${params.userId}-${params.eventId}`,
     },
   );
 

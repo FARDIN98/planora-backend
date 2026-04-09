@@ -129,6 +129,35 @@ async function getById(eventId: string, userId?: string) {
     throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
   }
 
+  // PRIVATE event access control: only organizer, approved registrants, and invited users can view
+  if (event.visibility === "PRIVATE") {
+    let hasAccess = false;
+
+    if (userId) {
+      // Organizer always has access
+      if (event.organizerId === userId) {
+        hasAccess = true;
+      } else {
+        // Check for approved registration or pending/accepted invitation
+        const [registration, invitation] = await Promise.all([
+          prisma.registration.findFirst({
+            where: { eventId: event.id, userId, status: "APPROVED" },
+            select: { id: true },
+          }),
+          prisma.invitation.findFirst({
+            where: { receiverId: userId, eventId: event.id, status: { in: ["PENDING", "ACCEPTED"] } },
+            select: { id: true },
+          }),
+        ]);
+        hasAccess = !!(registration || invitation);
+      }
+    }
+
+    if (!hasAccess) {
+      throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
+    }
+  }
+
   // Include user's registration status if authenticated
   let userRegistration = null;
   if (userId) {

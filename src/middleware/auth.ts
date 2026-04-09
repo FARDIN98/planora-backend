@@ -14,7 +14,7 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   try {
     const token = authHeader.split(" ")[1]!;
     const payload = verifyToken(token);
-    (req as any).user = payload;
+    req.user = payload;
     next();
   } catch {
     res.status(401).json({
@@ -30,7 +30,7 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
     try {
       const token = authHeader.split(" ")[1]!;
       const payload = verifyToken(token);
-      (req as any).user = payload;
+      req.user = payload;
     } catch {
       // Invalid token -- continue as anonymous
     }
@@ -40,7 +40,7 @@ export function optionalAuth(req: Request, res: Response, next: NextFunction) {
 
 export function requireAdmin(req: Request, res: Response, next: NextFunction) {
   requireAuth(req, res, () => {
-    if ((req as any).user.role !== "admin") {
+    if (req.user!.role !== "admin") {
       res.status(403).json({
         success: false,
         error: { message: "Forbidden", code: "FORBIDDEN" },
