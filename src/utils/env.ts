@@ -8,6 +8,9 @@ const OPTIONAL_ENV = [
   "STRIPE_SECRET_KEY",
   "STRIPE_WEBHOOK_SECRET",
   "RESEND_API_KEY",
+  "UNSPLASH_ACCESS_KEY",
+  "GOOGLE_CLIENT_ID",
+  "GROQ_API_KEY",
 ] as const;
 
 export function validateEnv(): void {

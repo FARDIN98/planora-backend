@@ -16,6 +16,11 @@ import registrationRoutes, { userRegistrationRouter } from "./routes/registratio
 import { stripeWebhookHandler } from "./routes/webhook.routes.js";
 import reviewRoutes, { userReviewRouter } from "./routes/review.routes.js";
 import invitationRoutes, { userInvitationRouter } from "./routes/invitation.routes.js";
+import blogRoutes, { adminBlogRouter } from "./routes/blog.routes.js";
+import newsletterRoutes from "./routes/newsletter.routes.js";
+import statsRoutes from "./routes/stats.routes.js";
+import googleAuthRoutes from "./routes/google-auth.routes.js";
+import chatbotRoutes from "./routes/chatbot.routes.js";
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -25,11 +30,15 @@ const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 app.set("trust proxy", 1);
 
 // CORS configuration -- must come before all route handlers
+const corsOrigins: string[] = [
+  process.env.FRONTEND_URL || "http://localhost:3000",
+];
+// Only allow localhost in non-production environments
+if (process.env.NODE_ENV !== "production") {
+  corsOrigins.push("http://localhost:3000");
+}
 app.use(cors({
-  origin: [
-    process.env.FRONTEND_URL || "http://localhost:3000",
-    "http://localhost:3000",
-  ],
+  origin: corsOrigins,
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
 }));
@@ -72,6 +81,12 @@ app.use("/api/v1/events/:eventId/reviews", reviewRoutes);
 app.use("/api/v1/reviews", userReviewRouter);
 app.use("/api/v1/events/:eventId/invitations", invitationRoutes);
 app.use("/api/v1/invitations", userInvitationRouter);
+app.use("/api/v1/blog", blogRoutes);
+app.use("/api/v1/admin/blog", adminBlogRouter);
+app.use("/api/v1/newsletter", newsletterRoutes);
+app.use("/api/v1/stats", statsRoutes);
+app.use("/api/v1/auth", googleAuthRoutes);
+app.use("/api/v1/chatbot", chatbotRoutes);
 
 // Legacy health check (keep for backward compatibility with Render health checks)
 app.get("/api/health", (_req, res) => {

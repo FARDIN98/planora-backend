@@ -60,6 +60,22 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
       name: "Webhooks",
       description: "Stripe webhook endpoint for payment confirmation",
     },
+    {
+      name: "Blog",
+      description: "Blog post management -- create, list, update, delete posts",
+    },
+    {
+      name: "Newsletter",
+      description: "Newsletter subscription management",
+    },
+    {
+      name: "Stats",
+      description: "Platform statistics, homepage data, and dashboard stats",
+    },
+    {
+      name: "Chatbot",
+      description: "AI chatbot powered by Google Gemini",
+    },
   ],
   components: {
     securitySchemes: {
@@ -203,6 +219,37 @@ const swaggerDefinition: swaggerJSDoc.OAS3Definition = {
               code: { type: "string", example: "RATE_LIMIT_EXCEEDED" },
             },
           },
+        },
+      },
+      BlogPost: {
+        type: "object",
+        properties: {
+          id: { type: "string", example: "clxyz123blog" },
+          title: { type: "string", example: "Getting Started with Event Planning" },
+          content: { type: "string", description: "Rich text HTML content" },
+          excerpt: { type: "string", nullable: true, example: "A brief overview of event planning..." },
+          coverImage: { type: "string", format: "uri", example: "https://images.unsplash.com/photo-example" },
+          tags: { type: "string", example: "events,planning,tips" },
+          published: { type: "boolean", example: true },
+          authorId: { type: "string" },
+          author: {
+            type: "object",
+            properties: {
+              id: { type: "string" },
+              name: { type: "string" },
+              email: { type: "string", format: "email" },
+            },
+          },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
+      NewsletterSubscription: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          email: { type: "string", format: "email" },
+          createdAt: { type: "string", format: "date-time" },
         },
       },
       Invitation: {

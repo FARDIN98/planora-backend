@@ -27,8 +27,8 @@ async function create(data: CreateEventInput, organizerId: string) {
 }
 
 async function list(query: SearchInput) {
-  const { page, limit, search, visibility, type, category, sortBy, sortOrder } =
-    query;
+  const { page, limit, search, visibility, type, category, sortBy, sortOrder,
+    dateFrom, dateTo, priceMin, priceMax, venue } = query;
 
   const where: any = {};
   const andConditions: any[] = [];
@@ -53,8 +53,37 @@ async function list(query: SearchInput) {
     andConditions.push({ category });
   }
 
+  // Date range filtering
+  if (dateFrom || dateTo) {
+    const dateFilter: any = {};
+    if (dateFrom) dateFilter.gte = new Date(dateFrom);
+    if (dateTo) dateFilter.lte = new Date(dateTo);
+    andConditions.push({ date: dateFilter });
+  }
+
+  // Price range filtering
+  if (priceMin !== undefined || priceMax !== undefined) {
+    const feeFilter: any = {};
+    if (priceMin !== undefined) feeFilter.gte = priceMin;
+    if (priceMax !== undefined) feeFilter.lte = priceMax;
+    andConditions.push({ fee: feeFilter });
+  }
+
+  // Venue search
+  if (venue) {
+    andConditions.push({ venue: { contains: venue, mode: "insensitive" } });
+  }
+
   if (andConditions.length > 0) {
     where.AND = andConditions;
+  }
+
+  // Build orderBy — for popularity sort, order by registration count
+  let orderBy: any;
+  if (sortBy === "fee") {
+    orderBy = { fee: sortOrder };
+  } else {
+    orderBy = { [sortBy]: sortOrder };
   }
 
   const [events, total] = await Promise.all([
@@ -62,7 +91,7 @@ async function list(query: SearchInput) {
       where,
       skip: (page - 1) * limit,
       take: limit,
-      orderBy: { [sortBy]: sortOrder },
+      orderBy,
       include: {
         organizer: { select: organizerSelect },
         _count: { select: { registrations: true } },
@@ -98,6 +127,35 @@ async function getById(eventId: string, userId?: string) {
 
   if (!event) {
     throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
+  }
+
+  // PRIVATE event access control: only organizer, approved registrants, and invited users can view
+  if (event.visibility === "PRIVATE") {
+    let hasAccess = false;
+
+    if (userId) {
+      // Organizer always has access
+      if (event.organizerId === userId) {
+        hasAccess = true;
+      } else {
+        // Check for approved registration or pending/accepted invitation
+        const [registration, invitation] = await Promise.all([
+          prisma.registration.findFirst({
+            where: { eventId: event.id, userId, status: "APPROVED" },
+            select: { id: true },
+          }),
+          prisma.invitation.findFirst({
+            where: { receiverId: userId, eventId: event.id, status: { in: ["PENDING", "ACCEPTED"] } },
+            select: { id: true },
+          }),
+        ]);
+        hasAccess = !!(registration || invitation);
+      }
+    }
+
+    if (!hasAccess) {
+      throw { status: 404, message: "Event not found", code: "NOT_FOUND" };
+    }
   }
 
   // Include user's registration status if authenticated

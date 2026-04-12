@@ -232,6 +232,15 @@ router.post("/login", catchAsync(async (req: Request, res: Response) => {
     return;
   }
 
+  // Guard: OAuth users without a usable password must use Google login
+  if (!user.password || user.password === "") {
+    res.status(401).json({
+      success: false,
+      error: { message: "This account uses Google sign-in. Please log in with Google.", code: "INVALID_CREDENTIALS" },
+    });
+    return;
+  }
+
   const isValidPassword = await bcrypt.compare(password, user.password);
   if (!isValidPassword) {
     res.status(401).json({
@@ -334,7 +343,7 @@ router.post("/logout", (_req: Request, res: Response) => {
  */
 router.get("/me", requireAuth, catchAsync(async (req: Request, res: Response) => {
   const user = await prisma.user.findUnique({
-    where: { id: (req as any).user.id },
+    where: { id: req.user!.id },
     select: { id: true, name: true, email: true, role: true },
   });
 
@@ -425,7 +434,7 @@ router.put("/me", requireAuth, catchAsync(async (req: Request, res: Response) =>
   }
 
   const updated = await prisma.user.update({
-    where: { id: (req as any).user.id },
+    where: { id: req.user!.id },
     data: { name: name.trim() },
   });
 
@@ -471,7 +480,7 @@ router.put("/me", requireAuth, catchAsync(async (req: Request, res: Response) =>
  */
 router.get("/notifications", requireAuth, catchAsync(async (req: Request, res: Response) => {
   const user = await prisma.user.findUnique({
-    where: { id: (req as any).user.id },
+    where: { id: req.user!.id },
     select: { notifyInvitations: true, notifyApprovals: true, notifyReviews: true },
   });
 
@@ -528,7 +537,7 @@ router.put("/notifications", requireAuth, catchAsync(async (req: Request, res: R
   }
 
   const updated = await prisma.user.update({
-    where: { id: (req as any).user.id },
+    where: { id: req.user!.id },
     data,
     select: { notifyInvitations: true, notifyApprovals: true, notifyReviews: true },
   });
