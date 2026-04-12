@@ -23,6 +23,7 @@ async function getHomepageData() {
     platformStats,
     topOrganizers,
     testimonials,
+    recentBlogPosts,
   ] = await Promise.all([
     // Featured events (isFeatured, limit 4)
     prisma.event.findMany({
@@ -90,10 +91,12 @@ async function getHomepageData() {
           where: { id: { in: organizerIds } },
           select: { id: true, name: true, email: true },
         });
-        return groups.map((g) => ({
-          ...users.find((u) => u.id === g.organizerId),
-          eventCount: g._count.id,
-        }));
+        return groups
+          .map((g) => {
+            const user = users.find((u) => u.id === g.organizerId);
+            return user ? { ...user, eventCount: g._count.id } : null;
+          })
+          .filter((u): u is NonNullable<typeof u> => u !== null);
       }),
 
     // Top 8 testimonials (reviews by rating desc)
@@ -104,6 +107,14 @@ async function getHomepageData() {
         user: { select: { id: true, name: true } },
         event: { select: { id: true, title: true } },
       },
+    }),
+
+    // Recent 3 published blog posts
+    prisma.blogPost.findMany({
+      where: { published: true },
+      take: 3,
+      orderBy: { createdAt: "desc" },
+      include: { author: { select: { id: true, name: true } } },
     }),
   ]);
 
@@ -127,6 +138,15 @@ async function getHomepageData() {
     platformStats,
     topOrganizers,
     testimonials,
+    recentBlogPosts: recentBlogPosts.map((post) => ({
+      id: post.id,
+      title: post.title,
+      excerpt: post.excerpt || post.content.replace(/<[^>]*>/g, "").slice(0, 160),
+      coverImage: post.coverImage,
+      author: { name: post.author.name },
+      createdAt: post.createdAt,
+      tags: post.tags,
+    })),
   };
 }
 

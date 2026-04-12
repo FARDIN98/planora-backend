@@ -1,10 +1,11 @@
 import { Router } from "express";
-import { requireAuth } from "../middleware/auth.js";
+import { requireAuth, requireAdmin } from "../middleware/auth.js";
 import { validate, validateQuery } from "../middleware/validate.js";
 import { createReviewSchema, updateReviewSchema } from "../schemas/review.schema.js";
 import { paginationSchema } from "../schemas/common.schema.js";
 import { reviewService } from "../services/review.service.js";
 import { catchAsync } from "../utils/catch-async.js";
+import { prisma } from "../lib/prisma.js";
 
 // --- Event-scoped router (mounted at /api/v1/events/:eventId/reviews) ---
 
@@ -270,6 +271,37 @@ userReviewRouter.get("/my", requireAuth, validateQuery(paginationSchema), catchA
   const { page, limit } = (req as any).validatedQuery;
   const result = await reviewService.getMyReviews(userId, page, limit);
   res.json({ success: true, data: result });
+}));
+
+/**
+ * @swagger
+ * /api/v1/reviews:
+ *   get:
+ *     tags: [Reviews]
+ *     summary: List recent reviews (admin only)
+ *     description: Platform-wide recent reviews feed for admin reports.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, minimum: 1, maximum: 50, default: 10 }
+ *     responses:
+ *       200: { description: Recent reviews }
+ *       401: { description: Not authenticated }
+ *       403: { description: Not an admin }
+ */
+userReviewRouter.get("/", requireAuth, requireAdmin, catchAsync(async (req, res) => {
+  const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? "10"), 10) || 10, 1), 50);
+  const reviews = await prisma.review.findMany({
+    take: limit,
+    orderBy: { createdAt: "desc" },
+    include: {
+      user: { select: { id: true, name: true } },
+      event: { select: { id: true, title: true } },
+    },
+  });
+  res.json({ success: true, data: { reviews } });
 }));
 
 /**

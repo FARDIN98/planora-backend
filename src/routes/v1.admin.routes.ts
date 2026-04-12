@@ -101,6 +101,7 @@ adminUserRouter.get("/", catchAsync(async (req: Request, res: Response) => {
         email: true,
         role: true,
         createdAt: true,
+        _count: { select: { events: true } },
       },
     }),
     prisma.user.count(),
